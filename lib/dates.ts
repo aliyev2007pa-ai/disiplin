@@ -58,3 +58,8 @@ export function gunAdi(isoGun: string): string {
   const metin = format(parseISO(isoGun), "EEEE", { locale: tr });
   return metin.charAt(0).toLocaleUpperCase("tr-TR") + metin.slice(1);
 }
+
+/** `2026-11-22` → `22 Kas 2026` (kart altlıklarında yer kaplamayan biçim). */
+export function kisaTarih(isoGun: string): string {
+  return format(parseISO(isoGun), "d MMM yyyy", { locale: tr });
+}

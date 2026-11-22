@@ -5,7 +5,9 @@
  * indirilecek bir varlık yok, gecikme yok.
  */
 
-const SES_ANAHTARI = "disiplin:ses";
+import { yerelYaz } from "./yerel";
+
+export const SES_ANAHTARI = "disiplin:ses";
 
 /** Tik sesi açık mı? Varsayılan açıktır. */
 export function sesAcikMi(): boolean {
@@ -21,11 +23,8 @@ export function sesAcikMi(): boolean {
 
 /** Tik sesini açar veya kapatır. */
 export function sesiAyarla(acik: boolean): void {
-  try {
-    window.localStorage.setItem(SES_ANAHTARI, acik ? "1" : "0");
-  } catch {
-    // Yazılamıyorsa sessizce geç; ses yine o oturum boyunca çalışır.
-  }
+  // yerelYaz hem yazar hem de ayarı dinleyen bileşenleri uyandırır.
+  yerelYaz(SES_ANAHTARI, acik ? "1" : "0");
 }
 
 let sesBaglami: AudioContext | null = null;

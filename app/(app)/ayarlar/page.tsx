@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import CikisButonu from "@/components/CikisButonu";
 import DavetYonetimi, { type DavetKodu } from "@/components/DavetYonetimi";
 import PageHeading from "@/components/PageHeading";
+import SesAnahtari from "@/components/SesAnahtari";
 import { createClient, getUser } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -41,12 +42,11 @@ export default async function AyarlarPage() {
 
       <section className="border-bordo-soft bg-surface mt-4 rounded-2xl border px-5 py-4">
         <h2 className="text-muted text-[12.5px] font-semibold tracking-wide uppercase">
-          Tik sesi
+          Geri bildirim
         </h2>
-        <p className="text-muted mt-1.5 text-[13.5px] leading-snug">
-          Tik animasyonunun sesini açıp kapatma seçeneği Faz 5&apos;te buraya
-          eklenecek.
-        </p>
+        <div className="mt-3">
+          <SesAnahtari />
+        </div>
       </section>
 
       <div className="mt-6">

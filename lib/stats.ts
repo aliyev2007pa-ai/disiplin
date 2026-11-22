@@ -141,3 +141,35 @@ export function hedefIstatistikleri({
     bugunYapildi,
   };
 }
+
+/**
+ * Hedef boyunca ulaşılan en uzun kesintisiz seri.
+ *
+ * Tamamlananlar sayfasında "en uzun seri" olarak gösterilir; güncel seriden
+ * farklıdır, çünkü geçmişte kalmış bir seriyi de sayar.
+ */
+export function enUzunSeri(
+  baslangic: string,
+  bitisHaric: string,
+  gunler: number[] | null,
+  yapilanGunler: Set<string>,
+): number {
+  let enIyi = 0;
+  let simdiki = 0;
+  let gun = baslangic;
+
+  for (let adim = 0; gun < bitisHaric && adim < EN_FAZLA_GUN; adim += 1) {
+    if (planliMi(gun, gunler)) {
+      if (yapilanGunler.has(gun)) {
+        simdiki += 1;
+        if (simdiki > enIyi) enIyi = simdiki;
+      } else {
+        simdiki = 0;
+      }
+    }
+
+    gun = gunEkle(gun, 1);
+  }
+
+  return enIyi;
+}
