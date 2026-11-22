@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   Disiplin tema — sade, ferah, asil.
+   Beyaz zemin, bordo vurgular. Karanlık mod YOKTUR (arayüz tek temalıdır).
+   --------------------------------------------------------------------------- */
+
+@theme {
+  /* Renkler (PROJE-PLANI.md bölüm 7) */
+  --color-bordo: #7b1e3a;
+  --color-bordo-dark: #5e1229;
+  --color-bordo-soft: #f7ecef;
+  --color-bg: #ffffff;
+  --color-surface: #faf8f7;
+  --color-ink: #1c1a1b;
+  --color-muted: #8a8285;
+  --color-success: #2e9e5b;
+  --color-success-soft: #e8f6ee;
+
+  /* Mobil öncelikli içerik genişliği */
+  --container-content: 35rem; /* 560px — masaüstünde içerik genişliği */
+}
+
+@theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-playfair), ui-serif, Georgia, serif;
+}
+
+@layer base {
+  :root {
+    /* İşletim sistemi karanlık modu form öğelerini ters çevirmesin */
+    color-scheme: only light;
+  }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    /* Alt sekme çubuğu sabit; içerik onun altında kalmasın */
+    overscroll-behavior-y: none;
+  }
+
+  /* Klavyeyle gezinenler için net odak halkası */
+  :focus-visible {
+    outline: 2px solid var(--color-bordo);
+    outline-offset: 2px;
+    border-radius: 0.5rem;
+  }
+}
+
+/* iPhone güvenli alanı yardımcıları */
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@utility mb-safe {
+  margin-bottom: env(safe-area-inset-bottom, 0px);
+}

@@ -1,0 +1,65 @@
+# ---------------------------------------------------------------------------
+# GİZLİ BİLGİLER — bu depo herkese açıktır, buradaki kurallara dokunma.
+# ---------------------------------------------------------------------------
+
+# Ortam değişkenleri: Supabase anahtarları, parolalar, tokenlar.
+# Hepsi engellenir; SADECE içinde gerçek değer olmayan örnek dosya izinlidir.
+.env
+.env.*
+!.env.local.example
+
+# Anahtar / sertifika / kimlik dosyaları
+*.pem
+*.key
+*.cer
+*.crt
+*.p12
+*.pfx
+*.keystore
+*.jks
+id_rsa*
+*.gpg
+secrets.json
+service-account*.json
+credentials*.json
+
+# Vercel ve Supabase yerel durum dosyaları (token içerebilir)
+.vercel
+.supabase
+supabase/.temp
+supabase/.branches
+
+# Claude Code yerel ayarları
+.claude/
+
+# ---------------------------------------------------------------------------
+# Derleme ve bağımlılıklar
+# ---------------------------------------------------------------------------
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+/.next/
+/out/
+/build
+/coverage
+*.tsbuildinfo
+next-env.d.ts
+
+# ---------------------------------------------------------------------------
+# Loglar ve işletim sistemi artıkları
+# ---------------------------------------------------------------------------
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+.DS_Store
+Thumbs.db
+desktop.ini
