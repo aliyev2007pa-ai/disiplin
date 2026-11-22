@@ -13,7 +13,7 @@ içinden üretir. Her kullanıcı yalnızca kendi verisini görür.
 
 **Canlı:** https://disiplin-plum.vercel.app
 
-> **Durum:** Faz 2 tamamlandı — şema, RLS, davetle kayıt ve giriş hazır.
+> **Durum:** Faz 3 tamamlandı — günlük görevler, tik animasyonu ve ilerleme halkası hazır.
 > Fazların tam dökümü için [`PROJE-PLANI.md`](./PROJE-PLANI.md).
 
 ## Ekranlar
@@ -110,7 +110,7 @@ npm run dev
 
 - [x] **Faz 1** — İskelet, tasarım sistemi, sekme çubuğu, canlı yayın
 - [x] **Faz 2** — Supabase şeması, RLS, davetle kayıt, e-posta + şifre ile giriş
-- [ ] **Faz 3** — Günlük görevler ve tik animasyonu
+- [x] **Faz 3** — Günlük görevler ve tik animasyonu
 - [ ] **Faz 4** — Süreli hedefler, seri ve ilerleme sayaçları
 - [ ] **Faz 5** — Tamamlananlar, dün özeti, ayarlar
 - [ ] **Faz 6** — PWA ve son cilalama
