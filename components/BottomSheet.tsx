@@ -49,7 +49,7 @@ export default function BottomSheet({
             role="dialog"
             aria-modal="true"
             aria-label={baslik}
-            className="bg-bg relative w-full max-w-content rounded-t-3xl px-5 pt-5 pb-8 shadow-[0_-8px_32px_rgba(28,26,27,0.12)] sm:mb-6 sm:rounded-3xl"
+            className="bg-bg relative max-h-[88dvh] w-full max-w-content overflow-y-auto overscroll-contain rounded-t-3xl px-5 pt-5 pb-8 shadow-[0_-8px_32px_rgba(28,26,27,0.12)] sm:mb-6 sm:rounded-3xl"
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}

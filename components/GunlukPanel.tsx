@@ -6,6 +6,7 @@ import { useState } from "react";
 import { gunEkle } from "@/lib/dates";
 import { tikSesi, titret } from "@/lib/feedback";
 import { createClient } from "@/lib/supabase/client";
+import { tikHatasiniCevir } from "@/lib/supabase/hatalar";
 
 import AddDailySheet from "./AddDailySheet";
 import ConfirmSheet from "./ConfirmSheet";
@@ -91,7 +92,7 @@ export default function GunlukPanel({
       setGorevler((o) =>
         o.map((g) => (g.id === id ? { ...g, yapildi: !yeniDurum } : g)),
       );
-      uyarGecici("Tik kaydedilemedi. Tekrar dene.");
+      uyarGecici(tikHatasiniCevir(error));
       return;
     }
 

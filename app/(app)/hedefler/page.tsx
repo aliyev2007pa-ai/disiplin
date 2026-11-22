@@ -1,24 +1,53 @@
 import type { Metadata } from "next";
 
-import EmptyState from "@/components/EmptyState";
-import PageHeading from "@/components/PageHeading";
+import HedeflerPanel from "@/components/HedeflerPanel";
+import type { Hedef } from "@/components/GoalCard";
+import { bugunBaku } from "@/lib/dates";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
   title: "Hedefler · Disiplin",
 };
 
-export default function HedeflerPage() {
-  return (
-    <>
-      <PageHeading
-        title="Hedefler"
-        subtitle="Süreli ve tekrarlayan görevler. Süresi bitene kadar panelde kalır."
-      />
-      <EmptyState
-        emoji="⭐"
-        title="Henüz hedef yok"
-        hint="İngilizce, spor, okuma gibi süreli hedeflerin burada listelenecek."
-      />
-    </>
-  );
+type SatirBicimi = {
+  id: string;
+  title: string;
+  emoji: string;
+  minutes: number | null;
+  start_date: string;
+  end_date: string;
+  duration_label: string;
+  weekdays: number[] | null;
+  completions: { done_date: string }[];
+};
+
+export default async function HedeflerPage() {
+  const bugun = bugunBaku();
+  const supabase = await createClient();
+
+  // Bugün aktif olan hedefler. Tikler filtresiz çekilir: seri ve "35 / 90"
+  // hesabı için hedefin bütün geçmişi gerekir.
+  const { data } = await supabase
+    .from("tasks")
+    .select(
+      "id, title, emoji, minutes, start_date, end_date, duration_label, weekdays, completions(done_date)",
+    )
+    .eq("kind", "goal")
+    .lte("start_date", bugun)
+    .gt("end_date", bugun)
+    .order("created_at", { ascending: true });
+
+  const hedefler: Hedef[] = ((data ?? []) as SatirBicimi[]).map((satir) => ({
+    id: satir.id,
+    baslik: satir.title,
+    emoji: satir.emoji,
+    dakika: satir.minutes,
+    sureEtiketi: satir.duration_label,
+    gunler: satir.weekdays,
+    baslangic: satir.start_date,
+    bitisHaric: satir.end_date,
+    yapilanGunler: satir.completions.map((tik) => tik.done_date),
+  }));
+
+  return <HedeflerPanel bugun={bugun} baslangicHedefleri={hedefler} />;
 }

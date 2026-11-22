@@ -44,3 +44,22 @@ export function authHatasiniCevir(hata: unknown): string {
       return "İşlem tamamlanamadı. Biraz sonra tekrar dene.";
   }
 }
+
+/**
+ * `toggle_completion` fonksiyonunun hatalarını kullanıcıya gösterilecek metne
+ * çevirir.
+ *
+ * Yalnızca bizim kendi `raise exception` mesajlarımız geçer (beyaz liste);
+ * tanımadığımız bir hatada ham mesaj gösterilmez.
+ */
+export function tikHatasiniCevir(hata: { message?: string } | null): string {
+  const BILINEN = [
+    "Oturum bulunamadı.",
+    "Görev bulunamadı.",
+    "Bu görev bugün aktif değil.",
+    "Bu görev bugün planlı değil.",
+  ];
+
+  const mesaj = hata?.message?.trim() ?? "";
+  return BILINEN.includes(mesaj) ? mesaj : "Tik kaydedilemedi. Tekrar dene.";
+}
