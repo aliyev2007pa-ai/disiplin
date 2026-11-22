@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -11,12 +12,14 @@ export default function AppHeader() {
     <header className="bg-bg/95 sticky top-0 z-30 backdrop-blur-sm">
       <div className="mx-auto flex w-full max-w-content items-center justify-between px-5 pt-4 pb-3">
         <Link href="/" className="flex items-center gap-2.5" aria-label="Disiplin ana sayfa">
-          <span
-            className="bg-bordo font-serif flex h-8 w-8 items-center justify-center rounded-xl text-[17px] leading-none font-bold text-white"
-            aria-hidden
-          >
-            D
-          </span>
+          <Image
+            src="/ikon-192.png"
+            alt=""
+            width={32}
+            height={32}
+            priority
+            className="h-8 w-8 rounded-xl"
+          />
           <span className="font-serif text-ink text-[19px] leading-none font-semibold tracking-tight">
             Disiplin
           </span>

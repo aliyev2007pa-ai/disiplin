@@ -13,7 +13,7 @@ içinden üretir. Her kullanıcı yalnızca kendi verisini görür.
 
 **Canlı:** https://disiplin-plum.vercel.app
 
-> **Durum:** Faz 5 tamamlandı — tamamlanan hedeflerin özeti, dün kartı ve ses tercihi hazır.
+> **Durum:** Altı fazın tamamı bitti — uygulama telefonun ana ekranına eklenip kendi ikonuyla açılıyor.
 > Fazların tam dökümü için [`PROJE-PLANI.md`](./PROJE-PLANI.md).
 
 ## Ekranlar
@@ -113,4 +113,4 @@ npm run dev
 - [x] **Faz 3** — Günlük görevler ve tik animasyonu
 - [x] **Faz 4** — Süreli hedefler, seri ve ilerleme sayaçları
 - [x] **Faz 5** — Tamamlananlar, dün özeti, ayarlar
-- [ ] **Faz 6** — PWA ve son cilalama
+- [x] **Faz 6** — PWA ve son cilalama
