@@ -7,6 +7,8 @@ hedeflerini yazar, her gün yaptıklarına tik atar; seri (streak) ve
 Arayüz tamamen **Türkçe**, mobil önceliklidir ve telefonun ana ekranına
 uygulama gibi eklenebilir (PWA).
 
+**Canlı:** https://disiplin-plum.vercel.app
+
 > **Durum:** Faz 1 tamamlandı — iskelet, tasarım sistemi ve gezinme hazır.
 > Fazların tam dökümü için [`PROJE-PLANI.md`](./PROJE-PLANI.md).
 
