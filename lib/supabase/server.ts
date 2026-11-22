@@ -2,6 +2,7 @@ import "server-only";
 
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { cache } from "react";
 
 import { SUPABASE_KEY, SUPABASE_URL } from "./env";
 
@@ -34,12 +35,16 @@ export async function createClient() {
  * Her zaman getUser() kullanılır, getSession() değil: getUser() çerezdeki
  * jetonu Supabase'e doğrulatır. getSession() çerezin içeriğine güvenir ve
  * çerez kurcalanmışsa yanlış sonuç verebilir.
+ *
+ * React cache() ile sarılıdır: aynı isteği hem layout hem sayfa çağırsa bile
+ * Supabase'e tek bir ağ turu gider. Doğrulama zayıflamaz, sadece tekrar eden
+ * tur ortadan kalkar.
  */
-export async function getUser() {
+export const getUser = cache(async () => {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   return user;
-}
+});

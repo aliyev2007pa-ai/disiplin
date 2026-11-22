@@ -13,14 +13,16 @@ export default async function AyarlarPage() {
   const user = await getUser();
   const supabase = await createClient();
 
-  // Davet bölümü yalnızca yöneticilere görünür. Görünürlük tek başına koruma
-  // değildir: kod üretme ve listeleme fonksiyonları yetkiyi kendileri de
-  // kontrol eder, yani bu bölüm gizlense bile başkası çağıramaz.
-  const { data: yonetici } = await supabase.rpc("is_admin");
+  // Tek sorgu: list_invite_codes yetkisi olmayana zaten hata döndürüyor,
+  // bu yüzden ayrıca is_admin çağırmaya gerek yok (bir ağ turu daha az).
+  //
+  // Görünürlük tek başına koruma değildir: kod üretme ve listeleme
+  // fonksiyonları yetkiyi kendileri de kontrol eder, yani bu bölüm gizlense
+  // bile başkası çağıramaz.
+  const { data: kodlar, error: kodHatasi } =
+    await supabase.rpc("list_invite_codes");
 
-  const { data: kodlar } = yonetici
-    ? await supabase.rpc("list_invite_codes")
-    : { data: null };
+  const yonetici = !kodHatasi;
 
   return (
     <>
