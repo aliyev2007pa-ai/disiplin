@@ -7,15 +7,21 @@ hedeflerini yazar, her gün yaptıklarına tik atar; seri (streak) ve
 Arayüz tamamen **Türkçe**, mobil önceliklidir ve telefonun ana ekranına
 uygulama gibi eklenebilir (PWA).
 
+Uygulama **davetlidir:** kayıt sayfası herkese açıktır, ama hesap açmak için
+tek kullanımlık bir davet kodu gerekir. Kodları yöneticiler uygulamanın
+içinden üretir. Her kullanıcı yalnızca kendi verisini görür.
+
 **Canlı:** https://disiplin-plum.vercel.app
 
-> **Durum:** Faz 1 tamamlandı — iskelet, tasarım sistemi ve gezinme hazır.
+> **Durum:** Faz 2 tamamlandı — şema, RLS, davetle kayıt ve giriş hazır.
 > Fazların tam dökümü için [`PROJE-PLANI.md`](./PROJE-PLANI.md).
 
 ## Ekranlar
 
 | Sayfa | Yol | İçerik |
 |---|---|---|
+| Giriş | `/giris` | E-posta + şifre |
+| Kayıt | `/kayit` | E-posta + davet kodu ile hesap açılır |
 | Günlük | `/` | Sadece bugüne ait tek seferlik işler; gece yarısı listeden kalkar |
 | Hedefler | `/hedefler` | Süreli, tekrarlayan hedefler; seri ve ilerleme sayaçları |
 | Tamamlananlar | `/tamamlananlar` | Süresi dolan hedeflerin başarı özeti |
@@ -55,13 +61,28 @@ Bu depo herkese açıktır, bu yüzden gizli hiçbir değer depoya girmez:
 - Anahtar, sertifika ve kimlik dosyaları (`*.pem`, `*.key`, `service-account*.json` …)
   ve Vercel/Supabase yerel durum dosyaları da engellenir.
 - Supabase **`service_role` anahtarı bu projede hiç kullanılmaz.** Yalnızca
-  tarayıcıya açılmak üzere tasarlanmış `anon` anahtarı kullanılır.
+  tarayıcıya açılmak üzere tasarlanmış `publishable` anahtarı kullanılır.
 - Verileri koruyan şey anahtarın gizliliği değil, veritabanındaki **RLS
   politikalarıdır**: her satır `user_id = auth.uid()` koşuluyla filtrelenir.
 - Tik atma işlemi istemciden doğrudan yazma ile değil, sunucu tarafındaki
   `toggle_completion` fonksiyonu üzerinden yapılır; istemciye `completions`
   tablosunda yalnızca okuma yetkisi verilir.
-- Kayıt (sign-up) kapalıdır; kullanıcı Supabase panelinden elle eklenir.
+- **Davet kodu ile kayıt:** `auth.users` üzerindeki `after insert`
+  tetikleyicisi, kodu tek bir `update` ile hem doğrular hem tüketir. Kural
+  veritabanındadır — istemci atlatılsa, API'ye doğrudan istek atılsa bile
+  kodsuz hesap açılamaz. Tek `update` olduğu için iki kişi aynı kodu aynı anda
+  kullanamaz; kayıt başarısız olursa işlem geri alınır ve kod yanmaz.
+- Kodlar 32 harflik bir alfabeden 12 karakterdir (yaklaşık 1,2 x 10^18
+  olasılık) ve `gen_random_uuid()` ile üretilir; karışan harfler (I, O, 0, 1)
+  alfabede yoktur.
+- `invite_codes` ve `app_admins` tablolarında RLS açıktır ve **bilerek hiç
+  politika yoktur:** API üzerinden ne okunabilir ne yazılabilir.
+- Kod üretme ve listeleme fonksiyonları yetkiyi kendi içlerinde kontrol eder;
+  Ayarlar'daki bölümün gizlenmesi yalnızca görsel bir ayrıntıdır.
+- Oturum her zaman `getUser()` ile doğrulanır (`getSession()` değil): jeton
+  Supabase'e sorulur, çerezin içeriğine güvenilmez.
+- Oturum kontrolü iki katmanlıdır: `proxy.ts` yönlendirir, `(app)` layout'u
+  sunucuda tekrar kontrol eder. Asıl koruma yine de RLS'tir.
 
 ## Kurulum
 
@@ -70,6 +91,7 @@ git clone https://github.com/aliyev2007pa-ai/disiplin.git
 cd disiplin
 npm install
 cp .env.local.example .env.local   # değerleri kendi Supabase projenden doldur
+# supabase/migrations/ içindeki SQL dosyalarını sırayla çalıştır
 npm run dev
 ```
 
@@ -87,7 +109,7 @@ npm run dev
 ## Yol haritası
 
 - [x] **Faz 1** — İskelet, tasarım sistemi, sekme çubuğu, canlı yayın
-- [ ] **Faz 2** — Supabase şeması, RLS, e-posta + şifre ile giriş
+- [x] **Faz 2** — Supabase şeması, RLS, davetle kayıt, e-posta + şifre ile giriş
 - [ ] **Faz 3** — Günlük görevler ve tik animasyonu
 - [ ] **Faz 4** — Süreli hedefler, seri ve ilerleme sayaçları
 - [ ] **Faz 5** — Tamamlananlar, dün özeti, ayarlar

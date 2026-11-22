@@ -15,13 +15,17 @@ görevi bırakmamaya motive eder. Uygulama Vercel'de 7/24 yayında durur,
 telefonun ana ekranına uygulama gibi eklenebilir (PWA). Arayüz tamamen
 **Türkçe**dir.
 
-İleride herkese açılıp abonelikle satılacak, ama **bu sürümde tek
-kullanıcı var.** Kod buna göre basit tutulmalı; yine de her tabloda
-`user_id` olduğu için ileride çok kullanıcıya geçmek kolay olacak.
+Uygulama **davetlidir:** sahibi uygulamanın içinden tek kullanımlık davet
+kodları üretir, yalnızca geçerli bir kodu olan hesap açabilir. Böylece sahibi uygulamayı ailesine ve yakınlarına
+açabilir, ama internetteki herkese açılmaz. Her kullanıcı yalnızca kendi
+görevlerini görür; bu ayrım arayüzde değil veritabanındaki RLS politikalarıyla
+garanti edilir. İleride abonelikle satılması düşünülüyor, o yüzden her tabloda
+`user_id` vardır.
 
 ## 2. Kullanıcılar ve yapabilecekleri
 
-Tek kullanıcı: uygulamanın sahibi.
+Davet kodu ile kaydolmuş kullanıcılar. Herkes kendi hesabıyla girer ve
+yalnızca kendi verisini görür. Kod üretme yetkisi yalnızca yöneticilerdedir.
 
 - E-posta + şifre ile giriş yapar; oturum açık kalır (her seferinde giriş yok).
 - **Günlük sayfası:** sadece bugüne ait küçük/tek seferlik işler ekler
@@ -43,7 +47,8 @@ Sağ üstte küçük bir ayarlar ikonu.
 
 | Sayfa | URL | İçerik |
 |---|---|---|
-| Giriş | `/giris` | Logo "Disiplin", e-posta, şifre, "Giriş yap" butonu. Kayıt bağlantısı **yok**. |
+| Giriş | `/giris` | Logo "Disiplin", e-posta, şifre, "Giriş yap" butonu. Altta "Hesap oluştur" bağlantısı. |
+| Kayıt | `/kayit` | E-posta, davet kodu, şifre, şifre tekrar. Geçersiz kod reddedilir. |
 | Günlük | `/` | Üstte tarih ("Cumartesi, 21 Kasım") ve günün ilerleme halkası ("3/5"). Altında bugünkü tek günlük görevler. En altta bordo "+ Görev ekle" butonu → kısa form (başlık + emoji). |
 | Hedefler | `/hedefler` | Üstte bugünün hedef ilerleme halkası. "Bugün yapılacaklar" bölümü (bugün planlı olanlar), altında "Bugün dinlenme günü" bölümü (soluk kartlar, "Sonraki: Çarşamba"). "+ Hedef ekle" butonu → hedef formu. |
 | Tamamlananlar | `/tamamlananlar` | Süresi bitmiş hedefler, en yeni üstte. Her kartta: emoji, başlık, tarih aralığı, "90 günün 84'ünde yaptın", başarı yüzdesi, en uzun seri. Üstte toplam: "Tamamlanan hedef: 3". |
@@ -72,14 +77,17 @@ Sağ üstte küçük bir ayarlar ikonu.
 | Stil | Tailwind CSS | Hızlı, tutarlı tasarım |
 | Animasyon | Framer Motion + `canvas-confetti` | Tik animasyonu ve "hepsi bitti" kutlaması |
 | Veritabanı | Supabase (Postgres) | Veriler telefon ve bilgisayarda ortak; ücretsiz plan yeter |
-| Auth | Supabase Auth, e-posta + şifre, **kayıt kapalı** | Tek kullanıcı; hesap Supabase panelinden elle açılır |
-| Supabase istemcisi | `@supabase/ssr` + middleware | Oturum çerezde tutulur, giriş kalıcı olur |
+| Auth | Supabase Auth, e-posta + şifre, **davet kodu ile kayıt** | Kayıt sayfası herkese açık, ama geçerli kodu olmayan hesap açamaz |
+| Supabase istemcisi | `@supabase/ssr` + `proxy.ts` | Oturum çerezde tutulur, giriş kalıcı olur (Next 16'da `middleware.ts` yerine `proxy.ts`) |
 | Tarih | `date-fns` + `date-fns-tz` | Ay ekleme, Bakü saat dilimi hesapları |
 | Hosting | Vercel | 7/24 yayın, GitHub'a push edince otomatik deploy |
 | PWA | `app/manifest.ts` + ikonlar + basit service worker | Telefona ikonla eklenebilsin |
 
 Ortam değişkenleri (`.env.local` ve Vercel'de):
-`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+
+İkisi de tarayıcıya gönderilir ve gizli değildir; verileri koruyan şey anahtar
+değil RLS'tir. `service_role` anahtarı bu projede **hiç kullanılmaz**.
 
 ## 5. Veri modeli
 
@@ -110,6 +118,28 @@ Tüm tarih alanları **Asia/Baku** takvim günüdür (`date` tipi, saat yok).
 | `created_at` | timestamptz | |
 | | | **unique (`task_id`, `done_date`)** |
 
+### `invite_codes`
+| Kolon | Tip | Not |
+|---|---|---|
+| `code` | text PK | `XXXX-XXXX-XXXX`, 32 harflik alfabe (I/O/0/1 yok) |
+| `note` | text null | "amcamın oğlu" gibi kısa not |
+| `created_by` | uuid null | kodu üreten yönetici |
+| `created_at` | timestamptz | `now()` |
+| `expires_at` | timestamptz | `now() + 7 gün` |
+| `used_at` | timestamptz null | doluysa kod tükenmiştir |
+| `used_by` | uuid null | kodu kullanan hesap |
+| `used_by_email` | text null | kodu kullanan e-posta |
+
+### `app_admins`
+| Kolon | Tip | Not |
+|---|---|---|
+| `user_id` | uuid PK | `auth.users(id)` |
+| `added_at` | timestamptz | `now()` |
+
+Her iki tabloda da RLS açıktır ve **bilerek hiç politika yoktur:** API
+üzerinden ne okunur ne yazılır. Yalnızca `security definer` fonksiyonlar ve
+Supabase paneli erişir.
+
 Bir görevin durumu tarihlerden **hesaplanır**, ayrıca saklanmaz:
 - Aktif: `start_date <= bugün < end_date`
 - Tamamlandı (Tamamlananlar'da): `kind='goal'` ve `end_date <= bugün`
@@ -122,14 +152,28 @@ Bir görevin durumu tarihlerden **hesaplanır**, ayrıca saklanmaz:
 Kurallar arayüzde değil **veritabanında** garanti edilir (Supabase migration içinde):
 
 1. **"Bugün" her zaman Bakü saatine göredir.** SQL'de `(now() at time zone 'Asia/Baku')::date`, istemcide `date-fns-tz` ile `Asia/Baku`. Telefonun saat dilimi farklı olsa bile değişmez.
-2. **Tik sadece bugün için atılır/geri alınır.** Bunun için `toggle_completion(p_task_id uuid)` Postgres fonksiyonu yaz (RPC ile çağrılır, `security invoker`): bugünü Bakü saatine göre hesaplar; görev kullanıcıya ait, bugün aktif ve bugün planlı değilse hata verir; bugün için kayıt varsa siler, yoksa ekler; yeni durumu (`true/false`) döner. İstemci `completions` tablosuna doğrudan insert/delete **yapmaz** (insert/delete politikası verme, sadece select ver).
+2. **Tik sadece bugün için atılır/geri alınır.** Bunun için `toggle_completion(p_task_id uuid)` Postgres fonksiyonu yaz (RPC ile çağrılır, `security definer` + `set search_path = ''`; `completions` tablosunda insert/delete politikası bilerek verilmediği için fonksiyon RLS'i aşar ama sahiplik ve tarih kurallarını kendisi doğrular): bugünü Bakü saatine göre hesaplar; görev kullanıcıya ait, bugün aktif ve bugün planlı değilse hata verir; bugün için kayıt varsa siler, yoksa ekler; yeni durumu (`true/false`) döner. İstemci `completions` tablosuna doğrudan insert/delete **yapmaz** (insert/delete politikası verme, sadece select ver).
 3. **Planlı gün:** `weekdays` null ise her gün; değilse günün ISO numarası listede olmalı.
 4. **Hedef bitiş tarihi:** gün/hafta için gün ekle; ay/yıl için takvim ayı ekle (`addMonths`, `addYears`). 1 hafta = 7 gün.
 5. **İlerleme "35 / 90":** pay = toplam tik sayısı; payda = `start_date`…`end_date-1` arasındaki planlı gün sayısı.
 6. **Seri (streak):** bugünden geriye doğru planlı günleri say; bugün henüz tiklenmediyse bugünü atlayıp dünden başla; tiklenmemiş ilk planlı günde dur. Kaçırılan gün seriyi sıfırlar ama "35 / 90" toplamını **etkilemez**.
 7. **Dün özeti:** günün ilk açılışında (son gösterim tarihi `localStorage`'da) dün planlı olan tüm görevler (daily + goal) için "Dün X/Y" ve yapılmayanların listesi gösterilir. Dün planlı görev yoksa gösterilmez. Tamamen başarılı günse olumlu mesaj: "Dün 5/5 — kusursuz gün 🔥".
 8. **Silme:** onay sorulur ("Bu hedef ve tüm geçmişi silinecek"). Silinen görevin tikleri de silinir (cascade).
-9. **Kayıt kapalı:** Supabase Auth ayarlarında "Allow new users to sign up" kapatılır; kullanıcı Supabase panelinden elle eklenir.
+9. **Davet kodu ile kayıt:** Kayıt sayfası herkese açıktır. Kod, `signUp`
+   sırasında `raw_user_meta_data.davet_kodu` alanında gelir; `auth.users`
+   üzerindeki **`after insert`** tetikleyicisi kodu tek bir `update` ile hem
+   doğrular hem "kullanıldı" yapar. Tek `update` olduğu için iki kişi aynı
+   kodu aynı anda kullanamaz; kayıt sonradan başarısız olursa işlem geri
+   alınır ve kod yanmaz. Tetikleyici `before` değil `after`tır, çünkü
+   `used_by` yazılırken `auth.users` satırının var olması gerekir. Kural
+   veritabanındadır: istemci atlatılsa, API'ye doğrudan istek atılsa bile
+   kodsuz hesap açılamaz. Kayıt sayfası ayrıca `is_invite_code_valid(text)`
+   ile önden kontrol yapar — bu sadece anlaşılır bir hata mesajı göstermek
+   içindir, asıl engel tetikleyicidir.
+10. **Kod üretme yetkisi:** `create_invite_code` ve `list_invite_codes`
+   yalnızca `app_admins` tablosundaki kullanıcılar için çalışır. Ayarlar'daki
+   Davetler bölümünün gizlenmesi görsel bir ayrıntıdır; yetki kontrolü
+   fonksiyonların kendi içindedir.
 
 ## 7. Tasarım
 
@@ -173,6 +217,8 @@ disiplin/
 │  ├─ layout.tsx              # fontlar, tema, sekme çubuğu
 │  ├─ manifest.ts             # PWA manifest
 │  ├─ giris/page.tsx
+│  ├─ kayit/page.tsx
+│  ├─ auth/onayla/route.ts   # e-posta doğrulama bağlantısı
 │  ├─ (app)/                  # giriş gerektiren sayfalar
 │  │  ├─ layout.tsx           # TabBar + DünÖzeti
 │  │  ├─ page.tsx             # Günlük
@@ -193,8 +239,9 @@ disiplin/
 │  ├─ dates.ts                # Bakü "bugün", bitiş tarihi, planlı gün hesapları
 │  ├─ stats.ts                # seri, "35/90", dün özeti
 │  └─ feedback.ts             # ses + titreşim
-├─ middleware.ts              # oturum yoksa /giris'e yönlendir
+├─ proxy.ts                   # oturum yoksa /giris'e yönlendir (Next 16)
 ├─ supabase/migrations/0001_init.sql
+├─ supabase/migrations/0002_invite_codes.sql
 ├─ public/icons/
 └─ .env.local.example
 ```
@@ -211,13 +258,21 @@ disiplin/
 **Bitti sayılır:** Telefonda Vercel URL'si açılıyor, beyaz-bordo tasarım ve alttaki sekmeler arası geçiş çalışıyor.
 
 ### Faz 2 — Supabase ve giriş
-**Hedef:** Uygulamaya sadece kullanıcının hesabıyla girilebiliyor.
+**Hedef:** Uygulamaya sadece geçerli davet kodu olanlar hesap açıp girebiliyor.
 **Yapılacaklar:**
 1. Kullanıcıya Supabase'de proje oluşturmayı, URL ve anon key'i `.env.local` ve Vercel'e eklemeyi adım adım anlat.
 2. `0001_init.sql` migration: `tasks`, `completions`, RLS politikaları, `toggle_completion` fonksiyonu (Bölüm 5–6).
-3. Kullanıcıya: Supabase'de kaydı kapatmayı ve kendi e-postasıyla kullanıcı eklemeyi anlat.
-4. `/giris` sayfası, `@supabase/ssr` ile oturum, middleware yönlendirmesi, Ayarlar'da "Çıkış yap".
-**Bitti sayılır:** Giriş yapmadan `/` açılınca `/giris`'e gidiyor; doğru şifreyle girince Günlük sayfası açılıyor; tarayıcı kapatılıp açılınca hâlâ girişli.
+3. `0002_invite_codes.sql` migration: `invite_codes` ve `app_admins`
+   tabloları, `auth.users` üzerinde davet tetikleyicisi, `create_invite_code`,
+   `list_invite_codes`, `is_admin`, `is_invite_code_valid` fonksiyonları.
+   Ayarlar'a yöneticiye görünen "Davetler" bölümü.
+4. `/giris` ve `/kayit` sayfaları, `@supabase/ssr` ile oturum, `proxy.ts`
+   yönlendirmesi, e-posta doğrulama rotası, Ayarlar'da "Çıkış yap".
+**Bitti sayılır:** Giriş yapmadan `/` açılınca `/giris`'e gidiyor; kodsuz ya
+da kullanılmış kodla kayıt reddediliyor; geçerli kodla kayıt olup giriş
+yapılabiliyor; kod ikinci kez işe yaramıyor; yönetici Ayarlar'dan yeni kod
+üretebiliyor, yönetici olmayan üretemiyor; tarayıcı kapatılıp açılınca hâlâ
+girişli.
 
 ### Faz 3 — Günlük sayfası ve tik animasyonu
 **Hedef:** Günlük görev ekle, tikle, yeşile boyanmasını gör, sil.
@@ -261,7 +316,8 @@ disiplin/
 
 Bunları kendi inisiyatifinle **ekleme**:
 - Telefona push bildirim / hatırlatma mesajı (kullanıcı istiyor, sonraki sürüm)
-- Abonelik, ödeme, herkese açık kayıt, çoklu kullanıcı
+- Abonelik, ödeme, davetsiz (herkese açık) kayıt
+- Kullanıcı silme / yönetici atama ekranı (şimdilik SQL ile yapılır)
 - Görev düzenleme (şimdilik sil + yeniden ekle), sürükle-bırak sıralama
 - Geçmiş gün için tik atma
 - İstatistik grafikleri, takvim/ısı haritası
@@ -278,3 +334,19 @@ Kullanıcının "sen karar ver" dediği veya hiç değinmediği noktalarda alın
 - Dün özetinin günde bir kez gösterilmesi cihaz bazında `localStorage` ile takip edilir (telefonda ve bilgisayarda ayrı ayrı bir kez görünebilir).
 - Supabase ücretsiz planı, bir hafta hiç kullanılmayan projeyi duraklatır; kullanıcı her gün kullanacağı için sorun değil. Duraklarsa Supabase panelinden tek tıkla açılır.
 - Faz 5'teki test için geçici olarak geçmiş tarihli bir hedef SQL ile eklenebilir; test sonrası silinir.
+- **Davetli çoklu kullanıcı** kararı Faz 2 başlarken alındı. Herkese açık kayıt
+  yerine davet kodu seçildi çünkü: bot ve çöp hesap oluşmaz, Supabase'in
+  ücretsiz planındaki düşük e-posta kotası yanmaz, kimlik taklidi riski düşer.
+  Veri modeli değişmedi; `user_id` zaten her tablodaydı.
+- Önce e-posta listesi tasarlandı, sonra kullanıcının isteğiyle **davet kodu**
+  modeline geçildi: sahibi davet edeceği kişinin e-postasını önceden bilmek
+  zorunda kalmıyor. Hiç kullanıcı oluşmadan değiştirildiği için veri taşınmadı.
+- `is_invite_code_valid` bir kodun geçerli olup olmadığını söyler, yani teorik
+  olarak kod denenebilir. Kod havuzu 32^12 (yaklaşık 1,2 x 10^18) olduğu ve kod
+  tek başına hesap açmaya yetmediği (e-posta + şifre gerekir) için bu kabul
+  edilebilir bir ödünç sayıldı.
+- İlk yönetici SQL ile işaretlenir (tavuk-yumurta sorunu): kod üretmek için
+  yönetici olmak, yönetici olmak için hesap açmak gerekir.
+- Next.js 16'nın Cache Components özelliği kapatıldı: her sayfa oturuma bağlı
+  olduğu için önbelleğe alınacak statik kabuk yok, açık bırakmak yalnızca
+  `cookies()` okuyan her sayfaya Suspense sınırı zorunluluğu getiriyordu.
