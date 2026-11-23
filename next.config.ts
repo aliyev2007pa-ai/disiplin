@@ -42,7 +42,9 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self' data:",
-  `connect-src 'self' ${supabase} ${websocket}`.trim(),
+  // api.pwnedpasswords.com: kayıt ekranındaki sızmış şifre kontrolü.
+  // Oraya yalnızca şifre özetinin ilk 5 karakteri gider (lib/sizmisSifre.ts).
+  `connect-src 'self' ${supabase} ${websocket} https://api.pwnedpasswords.com`.trim(),
   "worker-src 'self'",
   "manifest-src 'self'",
   "frame-ancestors 'none'",

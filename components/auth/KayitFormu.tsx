@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { sifreSizmisMi } from "@/lib/sizmisSifre";
 import { createClient } from "@/lib/supabase/client";
 import { authHatasiniCevir } from "@/lib/supabase/hatalar";
 
@@ -61,6 +62,15 @@ export default function KayitFormu() {
     setBekliyor(true);
 
     try {
+      // Şifre bilinen sızıntılarda geçiyor mu? Şifre cihazdan çıkmaz
+      // (bkz. lib/sizmisSifre.ts). Servise ulaşılamazsa sessizce geçer.
+      if (await sifreSizmisMi(sifre)) {
+        setHata(
+          "Bu şifre bilinen veri sızıntılarında geçiyor; saldırganların deneme listelerinde var. Lütfen başka bir şifre seç.",
+        );
+        return;
+      }
+
       const supabase = createClient();
 
       // Önden kontrol: yalnızca anlaşılır bir hata mesajı gösterebilmek için.
