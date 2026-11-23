@@ -3,6 +3,7 @@
 import { motion, useAnimationControls } from "framer-motion";
 
 import CheckButton from "./CheckButton";
+import Simge from "./Simge";
 
 /**
  * Tik animasyonu (PROJE-PLANI.md bölüm 7):
@@ -18,14 +19,14 @@ import CheckButton from "./CheckButton";
  */
 export default function TaskCard({
   baslik,
-  emoji,
+  simge,
   yapildi,
   bekliyor,
   onTikla,
   onSil,
 }: {
   baslik: string;
-  emoji: string;
+  simge: string;
   yapildi: boolean;
   bekliyor?: boolean;
   onTikla: () => void;
@@ -73,9 +74,12 @@ export default function TaskCard({
         />
 
         <div className="relative flex items-center gap-3 py-3 pr-3 pl-4">
-          <span className="text-[25px] leading-none" aria-hidden>
-            {emoji}
-          </span>
+          <Simge
+            ad={simge}
+            className={`h-6 w-6 shrink-0 transition-colors duration-300 ${
+              yapildi ? "text-success" : "text-bordo"
+            }`}
+          />
 
           <p
             className={`flex-1 text-[15.5px] leading-snug font-medium transition-colors duration-300 ${

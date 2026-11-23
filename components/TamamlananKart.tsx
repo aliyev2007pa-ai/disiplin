@@ -3,10 +3,12 @@ import { enUzunSeri, planliGunSayisi } from "@/lib/stats";
 import { gunlerEtiketi } from "@/lib/sureler";
 import { basariCumlesi } from "@/lib/turkce";
 
+import Simge from "./Simge";
+
 export type TamamlananHedef = {
   id: string;
   baslik: string;
-  emoji: string;
+  simge: string;
   sureEtiketi: string;
   gunler: number[] | null;
   baslangic: string;
@@ -51,9 +53,12 @@ export default function TamamlananKart({
       }`}
     >
       <div className="flex items-start gap-3">
-        <span className="text-[27px] leading-none" aria-hidden>
-          {hedef.emoji}
-        </span>
+        <Simge
+          ad={hedef.simge}
+          className={`mt-0.5 h-7 w-7 shrink-0 ${
+            basarili ? "text-success" : "text-bordo"
+          }`}
+        />
 
         <div className="min-w-0 flex-1">
           <p className="text-ink text-[15.5px] leading-snug font-semibold">
@@ -92,7 +97,10 @@ export default function TamamlananKart({
         <div className="text-muted mt-1.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5 text-[12.5px]">
           <span>{basariCumlesi(pay, payda)}</span>
           {seri > 0 ? (
-            <span className="tabular-nums">🔥 En uzun seri: {seri} gün</span>
+            <span className="inline-flex items-center gap-1 tabular-nums">
+              <Simge ad="alev" className="h-3.5 w-3.5 shrink-0" />
+              En uzun seri: {seri} gün
+            </span>
           ) : null}
         </div>
       </div>

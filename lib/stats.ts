@@ -97,7 +97,7 @@ export type HedefIstatistik = {
   payda: number;
   /** 0–1 arası ilerleme oranı. */
   oran: number;
-  /** 🔥 seri. */
+  /** Güncel seri. */
   seri: number;
   /** Bugün dahil, yapılmayı bekleyen planlı gün sayısı. */
   kalan: number;

@@ -12,12 +12,13 @@ import AddDailySheet from "./AddDailySheet";
 import ConfirmSheet from "./ConfirmSheet";
 import EmptyState from "./EmptyState";
 import ProgressRing from "./ProgressRing";
+import Simge from "./Simge";
 import TaskCard from "./TaskCard";
 
 export type Gorev = {
   id: string;
   baslik: string;
-  emoji: string;
+  simge: string;
   yapildi: boolean;
 };
 
@@ -102,9 +103,9 @@ export default function GunlukPanel({
     );
   }
 
-  async function ekle(baslik: string, emoji: string) {
+  async function ekle(baslik: string, simge: string) {
     const geciciId = `gecici-${crypto.randomUUID()}`;
-    setGorevler((o) => [...o, { id: geciciId, baslik, emoji, yapildi: false }]);
+    setGorevler((o) => [...o, { id: geciciId, baslik, simge, yapildi: false }]);
 
     const supabase = createClient();
     const { data, error } = await supabase
@@ -112,7 +113,8 @@ export default function GunlukPanel({
       .insert({
         kind: "daily",
         title: baslik,
-        emoji,
+        // Kolon adı tarihsel; içinde simge anahtarı tutulur (bkz. Simge.tsx).
+        emoji: simge,
         start_date: bugun,
         end_date: gunEkle(bugun, 1),
         duration_label: "Günlük",
@@ -151,12 +153,17 @@ export default function GunlukPanel({
           <h1 className="font-serif text-ink text-[26px] leading-tight font-bold tracking-tight">
             {tarihBasligi}
           </h1>
-          <p className="text-muted mt-1 text-[13.5px]">
-            {toplam === 0
-              ? "Bugün için henüz görev yok."
-              : hepsiBitti
-                ? "Bugün tamam 🔥"
-                : `${toplam - yapilan} görev kaldı.`}
+          <p className="text-muted mt-1 flex items-center gap-1 text-[13.5px]">
+            {toplam === 0 ? (
+              "Bugün için henüz görev yok."
+            ) : hepsiBitti ? (
+              <>
+                <Simge ad="alev" className="text-success h-3.5 w-3.5 shrink-0" />
+                <span className="text-success font-semibold">Bugün tamam</span>
+              </>
+            ) : (
+              `${toplam - yapilan} görev kaldı.`
+            )}
           </p>
         </div>
 
@@ -165,7 +172,7 @@ export default function GunlukPanel({
 
       {toplam === 0 ? (
         <EmptyState
-          emoji="🌤️"
+          simge="gunes"
           title="Henüz görev yok"
           hint="Bugün için küçük, tek seferlik işlerini buraya ekle."
         />
@@ -176,7 +183,7 @@ export default function GunlukPanel({
               <TaskCard
                 key={gorev.id}
                 baslik={gorev.baslik}
-                emoji={gorev.emoji}
+                simge={gorev.simge}
                 yapildi={gorev.yapildi}
                 bekliyor={bekleyen.includes(gorev.id)}
                 onTikla={() => void tikla(gorev.id)}
@@ -198,7 +205,7 @@ export default function GunlukPanel({
       <AddDailySheet
         acik={ekleAcik}
         onKapat={() => setEkleAcik(false)}
-        onEkle={(baslik, emoji) => void ekle(baslik, emoji)}
+        onEkle={(baslik, simge) => void ekle(baslik, simge)}
       />
 
       <ConfirmSheet

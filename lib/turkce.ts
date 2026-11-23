@@ -59,7 +59,7 @@ export function kacindaEki(sayi: number): string {
 export function basariCumlesi(pay: number, payda: number): string {
   if (payda === 0) return "Planlı gün yoktu.";
   if (pay === 0) return `${payda} günün hiçbirinde yapılmadı.`;
-  if (pay >= payda) return `${payda} günün hepsinde yaptın 🔥`;
+  if (pay >= payda) return `${payda} günün hepsinde yaptın`;
 
   return `${payda} günün ${kacindaEki(pay)} yaptın`;
 }

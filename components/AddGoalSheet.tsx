@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 
-import { EMOJILER, VARSAYILAN_EMOJI } from "@/lib/emojiler";
 import {
   BIRIM_ADLARI,
   BIRIM_UST_SINIR,
@@ -14,13 +13,18 @@ import {
 } from "@/lib/sureler";
 
 import BottomSheet from "./BottomSheet";
+import Simge, {
+  SIMGE_LISTESI,
+  VARSAYILAN_SIMGE,
+  simgeEtiketi,
+} from "./Simge";
 
 const EN_UZUN_BASLIK = 120;
 const EN_UZUN_DAKIKA = 1440;
 
 export type YeniHedef = {
   baslik: string;
-  emoji: string;
+  simge: string;
   dakika: number | null;
   bitisHaric: string;
   sureEtiketi: string;
@@ -41,7 +45,7 @@ export default function AddGoalSheet({
   onEkle: (hedef: YeniHedef) => void;
 }) {
   const [baslik, setBaslik] = useState("");
-  const [emoji, setEmoji] = useState<string>(VARSAYILAN_EMOJI);
+  const [simge, setSimge] = useState<string>(VARSAYILAN_SIMGE);
   const [dakika, setDakika] = useState("");
   const [sureKimligi, setSureKimligi] = useState<string>(
     SURE_SECENEKLERI[0].kimlik,
@@ -65,7 +69,7 @@ export default function AddGoalSheet({
 
   function sifirla() {
     setBaslik("");
-    setEmoji(VARSAYILAN_EMOJI);
+    setSimge(VARSAYILAN_SIMGE);
     setDakika("");
     setSureKimligi(SURE_SECENEKLERI[0].kimlik);
     setOzelSayi("30");
@@ -103,7 +107,7 @@ export default function AddGoalSheet({
 
     onEkle({
       baslik: baslik.trim(),
-      emoji,
+      simge,
       dakika:
         Number.isInteger(girilenDakika) &&
         girilenDakika >= 1 &&
@@ -142,23 +146,24 @@ export default function AddGoalSheet({
             Simge
           </span>
           <div className="mt-2 grid grid-cols-7 gap-1.5">
-            {EMOJILER.map((secenek) => {
-              const secili = secenek === emoji;
+            {SIMGE_LISTESI.map((secenek) => {
+              const secili = secenek === simge;
 
               return (
                 <button
                   key={secenek}
                   type="button"
-                  onClick={() => setEmoji(secenek)}
+                  onClick={() => setSimge(secenek)}
                   aria-pressed={secili}
-                  aria-label={`Simge ${secenek}`}
-                  className={`flex aspect-square items-center justify-center rounded-xl border text-[20px] transition-colors ${
+                  aria-label={simgeEtiketi(secenek)}
+                  title={simgeEtiketi(secenek)}
+                  className={`flex aspect-square items-center justify-center rounded-xl border transition-colors ${
                     secili
-                      ? "border-bordo bg-bordo-soft"
-                      : "border-transparent bg-surface hover:border-bordo-soft"
+                      ? "border-bordo bg-bordo-soft text-bordo"
+                      : "border-transparent bg-surface text-muted hover:border-bordo-soft hover:text-ink"
                   }`}
                 >
-                  {secenek}
+                  <Simge ad={secenek} className="h-5 w-5" />
                 </button>
               );
             })}

@@ -40,7 +40,7 @@ export default async function HedeflerPage() {
   const hedefler: Hedef[] = ((data ?? []) as SatirBicimi[]).map((satir) => ({
     id: satir.id,
     baslik: satir.title,
-    emoji: satir.emoji,
+    simge: satir.emoji,
     dakika: satir.minutes,
     sureEtiketi: satir.duration_label,
     gunler: satir.weekdays,

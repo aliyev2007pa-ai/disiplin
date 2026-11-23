@@ -13,6 +13,7 @@ import ConfirmSheet from "./ConfirmSheet";
 import EmptyState from "./EmptyState";
 import GoalCard, { type Hedef } from "./GoalCard";
 import ProgressRing from "./ProgressRing";
+import Simge from "./Simge";
 
 /** Bir hedefin bugünkü tikini ekler ya da kaldırır. */
 function bugunuAyarla(hedef: Hedef, bugun: string, yapildi: boolean): Hedef {
@@ -117,7 +118,7 @@ export default function HedeflerPanel({
     const iyimser: Hedef = {
       id: geciciId,
       baslik: yeni.baslik,
-      emoji: yeni.emoji,
+      simge: yeni.simge,
       dakika: yeni.dakika,
       sureEtiketi: yeni.sureEtiketi,
       gunler: yeni.gunler,
@@ -134,7 +135,8 @@ export default function HedeflerPanel({
       .insert({
         kind: "goal",
         title: yeni.baslik,
-        emoji: yeni.emoji,
+        // Kolon adı tarihsel; içinde simge anahtarı tutulur (bkz. Simge.tsx).
+        emoji: yeni.simge,
         minutes: yeni.dakika,
         start_date: bugun,
         end_date: yeni.bitisHaric,
@@ -175,14 +177,19 @@ export default function HedeflerPanel({
           <h1 className="font-serif text-ink text-[29px] leading-tight font-bold tracking-tight">
             Hedefler
           </h1>
-          <p className="text-muted mt-1.5 text-[13.5px]">
-            {hedefler.length === 0
-              ? "Süreli ve tekrarlayan görevler."
-              : toplam === 0
-                ? "Bugün hepsi dinlenme gününde."
-                : hepsiBitti
-                  ? "Bugün tamam 🔥"
-                  : `Bugün ${toplam - yapilan} hedef kaldı.`}
+          <p className="text-muted mt-1.5 flex items-center gap-1 text-[13.5px]">
+            {hedefler.length === 0 ? (
+              "Süreli ve tekrarlayan görevler."
+            ) : toplam === 0 ? (
+              "Bugün hepsi dinlenme gününde."
+            ) : hepsiBitti ? (
+              <>
+                <Simge ad="alev" className="text-success h-3.5 w-3.5 shrink-0" />
+                <span className="text-success font-semibold">Bugün tamam</span>
+              </>
+            ) : (
+              `Bugün ${toplam - yapilan} hedef kaldı.`
+            )}
           </p>
         </div>
 
@@ -191,7 +198,7 @@ export default function HedeflerPanel({
 
       {hedefler.length === 0 ? (
         <EmptyState
-          emoji="⭐"
+          simge="yildiz"
           title="Henüz hedef yok"
           hint="İngilizce, spor, okuma gibi süreli hedeflerin burada listelenecek."
         />

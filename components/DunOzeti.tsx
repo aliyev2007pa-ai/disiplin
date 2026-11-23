@@ -4,12 +4,14 @@ import { AnimatePresence, motion } from "framer-motion";
 
 import { useYerelDeger, yerelYaz } from "@/lib/yerel";
 
+import Simge from "./Simge";
+
 const ANAHTAR = "disiplin:dun-ozeti";
 
 export type DunDurumu = {
   toplam: number;
   yapilan: number;
-  yapilmayanlar: { baslik: string; emoji: string }[];
+  yapilmayanlar: { baslik: string; simge: string }[];
 };
 
 /**
@@ -51,13 +53,18 @@ export default function DunOzeti({
             }`}
           >
             <p
-              className={`font-serif text-[17px] font-bold ${
+              className={`font-serif flex items-center gap-1.5 text-[17px] font-bold ${
                 kusursuz ? "text-success" : "text-ink"
               }`}
             >
-              {kusursuz
-                ? `Dün ${durum.yapilan}/${durum.toplam} — kusursuz gün 🔥`
-                : `Dün ${durum.yapilan}/${durum.toplam}`}
+              {kusursuz ? (
+                <>
+                  <Simge ad="alev" className="h-4 w-4 shrink-0" />
+                  {`Dün ${durum.yapilan}/${durum.toplam} — kusursuz gün`}
+                </>
+              ) : (
+                `Dün ${durum.yapilan}/${durum.toplam}`
+              )}
             </p>
 
             {kusursuz ? null : (
@@ -71,7 +78,10 @@ export default function DunOzeti({
                       key={`${is.baslik}-${sira}`}
                       className="text-ink flex items-center gap-2 text-[14px]"
                     >
-                      <span aria-hidden>{is.emoji}</span>
+                      <Simge
+                        ad={is.simge}
+                        className="text-bordo h-4 w-4 shrink-0"
+                      />
                       <span className="min-w-0 flex-1">{is.baslik}</span>
                     </li>
                   ))}

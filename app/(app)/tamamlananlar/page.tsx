@@ -42,7 +42,7 @@ export default async function TamamlananlarPage() {
     (satir) => ({
       id: satir.id,
       baslik: satir.title,
-      emoji: satir.emoji,
+      simge: satir.emoji,
       sureEtiketi: satir.duration_label,
       gunler: satir.weekdays,
       baslangic: satir.start_date,
@@ -64,7 +64,7 @@ export default async function TamamlananlarPage() {
 
       {hedefler.length === 0 ? (
         <EmptyState
-          emoji="🏅"
+          simge="madalya"
           title="Henüz tamamlanan hedef yok"
           hint="Bir hedefin süresi dolduğunda başarı özetiyle birlikte buraya taşınır."
         />

@@ -2,9 +2,12 @@
 
 import { useState } from "react";
 
-import { EMOJILER, VARSAYILAN_EMOJI } from "@/lib/emojiler";
-
 import BottomSheet from "./BottomSheet";
+import Simge, {
+  SIMGE_LISTESI,
+  VARSAYILAN_SIMGE,
+  simgeEtiketi,
+} from "./Simge";
 
 const EN_UZUN_BASLIK = 120;
 
@@ -15,14 +18,14 @@ export default function AddDailySheet({
 }: {
   acik: boolean;
   onKapat: () => void;
-  onEkle: (baslik: string, emoji: string) => void;
+  onEkle: (baslik: string, simge: string) => void;
 }) {
   const [baslik, setBaslik] = useState("");
-  const [emoji, setEmoji] = useState<string>(VARSAYILAN_EMOJI);
+  const [simge, setSimge] = useState<string>(VARSAYILAN_SIMGE);
 
   function kapat() {
     setBaslik("");
-    setEmoji(VARSAYILAN_EMOJI);
+    setSimge(VARSAYILAN_SIMGE);
     onKapat();
   }
 
@@ -32,7 +35,7 @@ export default function AddDailySheet({
     const temiz = baslik.trim();
     if (!temiz) return;
 
-    onEkle(temiz, emoji);
+    onEkle(temiz, simge);
     kapat();
   }
 
@@ -60,23 +63,24 @@ export default function AddDailySheet({
             Simge
           </span>
           <div className="mt-2 grid grid-cols-7 gap-1.5">
-            {EMOJILER.map((secenek) => {
-              const secili = secenek === emoji;
+            {SIMGE_LISTESI.map((secenek) => {
+              const secili = secenek === simge;
 
               return (
                 <button
                   key={secenek}
                   type="button"
-                  onClick={() => setEmoji(secenek)}
+                  onClick={() => setSimge(secenek)}
                   aria-pressed={secili}
-                  aria-label={`Simge ${secenek}`}
-                  className={`flex aspect-square items-center justify-center rounded-xl border text-[20px] transition-colors ${
+                  aria-label={simgeEtiketi(secenek)}
+                  title={simgeEtiketi(secenek)}
+                  className={`flex aspect-square items-center justify-center rounded-xl border transition-colors ${
                     secili
-                      ? "border-bordo bg-bordo-soft"
-                      : "border-transparent bg-surface hover:border-bordo-soft"
+                      ? "border-bordo bg-bordo-soft text-bordo"
+                      : "border-transparent bg-surface text-muted hover:border-bordo-soft hover:text-ink"
                   }`}
                 >
-                  {secenek}
+                  <Simge ad={secenek} className="h-5 w-5" />
                 </button>
               );
             })}

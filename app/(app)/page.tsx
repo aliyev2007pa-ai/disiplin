@@ -4,6 +4,7 @@ import { baslikTarihi, bugunBaku, gunEkle } from "@/lib/dates";
 import { planliMi } from "@/lib/stats";
 import { createClient } from "@/lib/supabase/server";
 
+/** `emoji` kolonu artık simge anahtarı tutar (bkz. components/Simge.tsx). */
 type BugunSatiri = {
   id: string;
   title: string;
@@ -50,7 +51,7 @@ export default async function GunlukPage() {
     (satir) => ({
       id: satir.id,
       baslik: satir.title,
-      emoji: satir.emoji,
+      simge: satir.emoji,
       yapildi: satir.completions.length > 0,
     }),
   );
@@ -68,7 +69,7 @@ export default async function GunlukPage() {
           yapilan: dunPlanlilar.filter((s) => s.completions.length > 0).length,
           yapilmayanlar: dunPlanlilar
             .filter((s) => s.completions.length === 0)
-            .map((s) => ({ baslik: s.title, emoji: s.emoji })),
+            .map((s) => ({ baslik: s.title, simge: s.emoji })),
         };
 
   return (

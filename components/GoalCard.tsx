@@ -8,11 +8,12 @@ import { hedefIstatistikleri, sonrakiPlanliGun } from "@/lib/stats";
 import { gunlerEtiketi } from "@/lib/sureler";
 
 import CheckButton from "./CheckButton";
+import Simge from "./Simge";
 
 export type Hedef = {
   id: string;
   baslik: string;
-  emoji: string;
+  simge: string;
   dakika: number | null;
   sureEtiketi: string;
   gunler: number[] | null;
@@ -119,9 +120,12 @@ export default function GoalCard({
 
         <div className="relative px-4 py-3.5">
           <div className="flex items-start gap-3">
-            <span className="text-[27px] leading-none" aria-hidden>
-              {hedef.emoji}
-            </span>
+            <Simge
+              ad={hedef.simge}
+              className={`mt-0.5 h-7 w-7 shrink-0 transition-colors duration-300 ${
+                yapildi ? "text-success" : "text-bordo"
+              }`}
+            />
 
             <div className="min-w-0 flex-1">
               <p
@@ -171,8 +175,14 @@ export default function GoalCard({
 
           <div className="mt-3">
             {ist.seri > 0 ? (
-              <p className="text-ink mb-1.5 text-[13px] font-semibold">
-                🔥 {ist.seri} gün seri
+              <p className="text-ink mb-1.5 flex items-center gap-1 text-[13px] font-semibold">
+                <Simge
+                  ad="alev"
+                  className={`h-3.5 w-3.5 shrink-0 ${
+                    yapildi ? "text-success" : "text-bordo"
+                  }`}
+                />
+                {ist.seri} gün seri
               </p>
             ) : null}
 
