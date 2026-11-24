@@ -3,8 +3,14 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { SUPABASE_KEY, SUPABASE_URL } from "./env";
 
-/** Oturum açmadan görülebilen yollar. */
-const ACIK_YOLLAR = ["/giris", "/kayit", "/auth"];
+/**
+ * Oturum açmadan görülebilen yollar.
+ *
+ * `/api` burada: hatırlatma uç noktasını zamanlayıcı çağırıyor, onun
+ * oturumu yok. O uç nokta kimliği kendisi doğruluyor (paylaşılan sır).
+ * Oturum gerektiren API yolları da yetkiyi kendi kontrol eder.
+ */
+const ACIK_YOLLAR = ["/giris", "/kayit", "/auth", "/api"];
 
 function acikYolMu(pathname: string) {
   return ACIK_YOLLAR.some(

@@ -13,6 +13,7 @@ import {
 } from "@/lib/sureler";
 
 import BottomSheet from "./BottomSheet";
+import HatirlatmaAlani from "./HatirlatmaAlani";
 import Simge, {
   SIMGE_LISTESI,
   VARSAYILAN_SIMGE,
@@ -29,6 +30,8 @@ export type HedefAlanlari = {
   simge: string;
   dakika: number | null;
   gunler: number[] | null;
+  /** "07:30" ya da null. Yalnızca hedefin planlı olduğu günlerde çalar. */
+  hatirlatma: string | null;
 };
 
 /** Yeni hedefte bunlara ek olarak süre de belirlenir. */
@@ -79,6 +82,7 @@ function HedefFormu({
   const [secilenGunler, setSecilenGunler] = useState<number[]>(
     duzenlenen?.gunler ?? [],
   );
+  const [hatirlatma, setHatirlatma] = useState(duzenlenen?.hatirlatma ?? "");
 
   const ozelMi = sureKimligi === OZEL;
   const ozelSayisi = Number.parseInt(ozelSayi, 10);
@@ -116,6 +120,7 @@ function HedefFormu({
           ? girilenDakika
           : null,
       gunler: herGun ? null : [...secilenGunler].sort((a, b) => a - b),
+      hatirlatma: hatirlatma || null,
     };
 
     if (duzenlenen) {
@@ -352,6 +357,12 @@ function HedefFormu({
           </p>
         ) : null}
       </div>
+
+      <HatirlatmaAlani
+        deger={hatirlatma}
+        onDegistir={setHatirlatma}
+        ipucu="Yalnızca hedefin planlı olduğu günlerde çalar. Örneğin Pzt-Çar-Cum seçtiysen sadece o günlerin sabahında."
+      />
 
       <button
         type="submit"

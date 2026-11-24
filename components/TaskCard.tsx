@@ -27,6 +27,7 @@ export default function TaskCard<T>({
   baslik,
   simge,
   sabit,
+  hatirlatma,
   yapildi,
   bekliyor,
   suruklenebilir,
@@ -39,6 +40,8 @@ export default function TaskCard<T>({
   baslik: string;
   simge: string;
   sabit: boolean;
+  /** "21:30" ya da null; doluysa kartta küçük bir saat görünür. */
+  hatirlatma: string | null;
   yapildi: boolean;
   bekliyor?: boolean;
   /** Grupta tek kart varsa tutamak gösterilmez. */
@@ -113,6 +116,16 @@ export default function TaskCard<T>({
             ) : null}
             <span className="min-w-0 flex-1">{baslik}</span>
           </p>
+
+          {hatirlatma ? (
+            <span
+              className="text-muted flex shrink-0 items-center gap-1 text-[12px] tabular-nums"
+              title={`Hatırlatma: ${hatirlatma}`}
+            >
+              <Simge ad="saat" className="h-3.5 w-3.5" />
+              {hatirlatma}
+            </span>
+          ) : null}
 
           {suruklenebilir ? (
             <button

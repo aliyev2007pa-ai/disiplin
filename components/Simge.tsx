@@ -234,6 +234,16 @@ const TANIMLAR: Record<string, Tanim> = {
     ),
   },
 
+  saat: {
+    etiket: "Hatırlatma",
+    cizim: (
+      <>
+        <circle cx="12" cy="12" r="8.4" />
+        <path d="M12 7.2V12l3.2 1.9" />
+      </>
+    ),
+  },
+
   grafik: {
     etiket: "İstatistik",
     cizim: (

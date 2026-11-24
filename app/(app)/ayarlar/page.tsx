@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import BildirimAyari from "@/components/BildirimAyari";
 import CikisButonu from "@/components/CikisButonu";
 import DavetYonetimi, { type DavetKodu } from "@/components/DavetYonetimi";
 import PageHeading from "@/components/PageHeading";
@@ -25,6 +26,12 @@ export default async function AyarlarPage() {
 
   const yonetici = !kodHatasi;
 
+  // Henüz hiç kaydetmediyse satır yoktur; varsayılan değerler gösterilir.
+  const { data: bildirimAyari } = await supabase
+    .from("bildirim_ayarlari")
+    .select("aksam_acik, aksam_saati")
+    .maybeSingle();
+
   return (
     <>
       <PageHeading title="Ayarlar" subtitle="Uygulama tercihleri." />
@@ -35,6 +42,12 @@ export default async function AyarlarPage() {
         </h2>
         <p className="text-ink mt-1.5 text-[15px] break-all">{user?.email}</p>
       </section>
+
+      <BildirimAyari
+        aksamAcik={bildirimAyari?.aksam_acik ?? true}
+        // Postgres "20:00:00" döner, <input type="time"> "20:00" ister.
+        aksamSaati={(bildirimAyari?.aksam_saati ?? "20:00").slice(0, 5)}
+      />
 
       {yonetici ? (
         <DavetYonetimi baslangicKodlari={(kodlar ?? []) as DavetKodu[]} />

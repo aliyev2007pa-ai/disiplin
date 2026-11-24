@@ -3,15 +3,16 @@
 import { useEffect } from "react";
 
 /**
- * Servis çalışanını kaydeder (yalnızca canlı sürümde).
+ * Servis çalışanını kaydeder.
  *
- * Geliştirmede kayıt yapılmaz: önbelleğe alınan eski paketler "değişikliğim
- * neden görünmüyor" diye saatler yakar. Çalışanın kendisi `public/sw.js`
- * içindedir ve sayfa HTML'lerini bilerek önbelleğe almaz.
+ * Yerelde de kaydedilir, çünkü bildirimler ancak servis çalışanı varken
+ * denenebiliyor. Önbellek tehlikesi yok: çalışanın kendisi localhost'ta
+ * hiçbir şeyi önbelleğe almıyor (bkz. public/sw.js, GELISTIRME).
+ *
+ * Çalışan sayfa HTML'lerini canlıda da bilerek önbelleğe almaz.
  */
 export default function SwKaydi() {
   useEffect(() => {
-    if (process.env.NODE_ENV !== "production") return;
     if (!("serviceWorker" in navigator)) return;
 
     const kaydet = () => {

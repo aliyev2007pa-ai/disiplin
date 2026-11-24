@@ -20,6 +20,7 @@ type SatirBicimi = {
   weekdays: number[] | null;
   sira: number;
   sabit: boolean;
+  hatirlatma: string | null;
   completions: { done_date: string }[];
 };
 
@@ -32,7 +33,7 @@ export default async function HedeflerPage() {
   const { data } = await supabase
     .from("tasks")
     .select(
-      "id, title, emoji, minutes, start_date, end_date, duration_label, weekdays, sira, sabit, completions(done_date)",
+      "id, title, emoji, minutes, start_date, end_date, duration_label, weekdays, sira, sabit, hatirlatma, completions(done_date)",
     )
     .eq("kind", "goal")
     .lte("start_date", bugun)
@@ -52,6 +53,8 @@ export default async function HedeflerPage() {
     bitisHaric: satir.end_date,
     sira: satir.sira,
     sabit: satir.sabit,
+    // Postgres "07:30:00" döner; arayüz "07:30" ister.
+    hatirlatma: satir.hatirlatma ? satir.hatirlatma.slice(0, 5) : null,
     yapilanGunler: satir.completions.map((tik) => tik.done_date),
   }));
 

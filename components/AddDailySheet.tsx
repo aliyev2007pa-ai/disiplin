@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import BottomSheet from "./BottomSheet";
+import HatirlatmaAlani from "./HatirlatmaAlani";
 import Simge, {
   SIMGE_LISTESI,
   VARSAYILAN_SIMGE,
@@ -15,6 +16,8 @@ const EN_UZUN_BASLIK = 120;
 export type GorevTaslagi = {
   baslik: string;
   simge: string;
+  /** "21:30" ya da null (hatırlatma yok). Saat Bakü saatidir. */
+  hatirlatma: string | null;
 };
 
 /**
@@ -34,6 +37,7 @@ function GorevFormu({
 }) {
   const [baslik, setBaslik] = useState(duzenlenen?.baslik ?? "");
   const [simge, setSimge] = useState(duzenlenen?.simge ?? VARSAYILAN_SIMGE);
+  const [hatirlatma, setHatirlatma] = useState(duzenlenen?.hatirlatma ?? "");
 
   function gonder(olay: React.FormEvent<HTMLFormElement>) {
     olay.preventDefault();
@@ -41,7 +45,7 @@ function GorevFormu({
     const temiz = baslik.trim();
     if (!temiz) return;
 
-    onKaydet({ baslik: temiz, simge });
+    onKaydet({ baslik: temiz, simge, hatirlatma: hatirlatma || null });
     onKapat();
   }
 
@@ -91,6 +95,12 @@ function GorevFormu({
           })}
         </div>
       </div>
+
+      <HatirlatmaAlani
+        deger={hatirlatma}
+        onDegistir={setHatirlatma}
+        ipucu="Seçtiğin saatte telefonuna bildirim gelir. Bildirimleri önce Ayarlar'dan açman gerekiyor."
+      />
 
       <button
         type="submit"

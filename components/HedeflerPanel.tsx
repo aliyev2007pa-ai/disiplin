@@ -153,6 +153,7 @@ export default function HedeflerPanel({
       // listenin sonuna düşsün diye aynısını tahmin ediyoruz.
       sira: Date.now() / 1000,
       sabit: false,
+      hatirlatma: yeni.hatirlatma,
       yapilanGunler: [],
     };
 
@@ -167,6 +168,7 @@ export default function HedeflerPanel({
         // Kolon adı tarihsel; içinde simge anahtarı tutulur (bkz. Simge.tsx).
         emoji: yeni.simge,
         minutes: yeni.dakika,
+        hatirlatma: yeni.hatirlatma,
         start_date: bugun,
         end_date: yeni.bitisHaric,
         duration_label: yeni.sureEtiketi,
@@ -199,6 +201,7 @@ export default function HedeflerPanel({
               simge: alanlar.simge,
               dakika: alanlar.dakika,
               gunler: alanlar.gunler,
+              hatirlatma: alanlar.hatirlatma,
             }
           : h,
       ),
@@ -212,6 +215,7 @@ export default function HedeflerPanel({
         emoji: alanlar.simge,
         minutes: alanlar.dakika,
         weekdays: alanlar.gunler,
+        hatirlatma: alanlar.hatirlatma,
       })
       .eq("id", id);
 
@@ -419,6 +423,7 @@ export default function HedeflerPanel({
                 simge: form.duzenlenen.simge,
                 dakika: form.duzenlenen.dakika,
                 gunler: form.duzenlenen.gunler,
+                hatirlatma: form.duzenlenen.hatirlatma,
                 sureBilgisi: `${form.duzenlenen.sureEtiketi} · ${kisaTarih(
                   form.duzenlenen.baslangic,
                 )} – ${kisaTarih(gunEkle(form.duzenlenen.bitisHaric, -1))}`,

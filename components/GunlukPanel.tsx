@@ -30,6 +30,8 @@ export type Gorev = {
   sira: number;
   /** Listenin en üstüne sabitlenmiş mi? */
   sabit: boolean;
+  /** "21:30" ya da null. Bakü saati (bkz. migration 0007). */
+  hatirlatma: string | null;
 };
 
 export default function GunlukPanel({
@@ -123,7 +125,7 @@ export default function GunlukPanel({
     );
   }
 
-  async function ekle({ baslik, simge }: GorevTaslagi) {
+  async function ekle({ baslik, simge, hatirlatma }: GorevTaslagi) {
     const geciciId = `gecici-${crypto.randomUUID()}`;
 
     // Veritabanındaki varsayılan `sira` da epoch saniyesi; burada aynısını
@@ -138,6 +140,7 @@ export default function GunlukPanel({
         yapildi: false,
         sira: Date.now() / 1000,
         sabit: false,
+        hatirlatma,
       },
     ]);
 
@@ -149,6 +152,7 @@ export default function GunlukPanel({
         title: baslik,
         // Kolon adı tarihsel; içinde simge anahtarı tutulur (bkz. Simge.tsx).
         emoji: simge,
+        hatirlatma,
         start_date: bugun,
         end_date: gunEkle(bugun, 1),
         duration_label: "Günlük",
@@ -236,16 +240,19 @@ export default function GunlukPanel({
     }
   }
 
-  async function guncelle(id: string, { baslik, simge }: GorevTaslagi) {
+  async function guncelle(
+    id: string,
+    { baslik, simge, hatirlatma }: GorevTaslagi,
+  ) {
     const yedek = gorevler;
     setGorevler((o) =>
-      o.map((g) => (g.id === id ? { ...g, baslik, simge } : g)),
+      o.map((g) => (g.id === id ? { ...g, baslik, simge, hatirlatma } : g)),
     );
 
     const supabase = createClient();
     const { error } = await supabase
       .from("tasks")
-      .update({ title: baslik, emoji: simge })
+      .update({ title: baslik, emoji: simge, hatirlatma })
       .eq("id", id);
 
     if (error) {
@@ -291,6 +298,7 @@ export default function GunlukPanel({
               baslik={gorev.baslik}
               simge={gorev.simge}
               sabit={gorev.sabit}
+              hatirlatma={gorev.hatirlatma}
               yapildi={gorev.yapildi}
               bekliyor={bekleyen.includes(gorev.id)}
               suruklenebilir={grup.length > 1}

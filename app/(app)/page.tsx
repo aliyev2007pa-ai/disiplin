@@ -11,8 +11,14 @@ type BugunSatiri = {
   emoji: string;
   sira: number;
   sabit: boolean;
+  hatirlatma: string | null;
   completions: { done_date: string }[];
 };
+
+/** Postgres "21:30:00" döner; arayüz ve <input type="time"> "21:30" ister. */
+function saatKisalt(deger: string | null): string | null {
+  return deger ? deger.slice(0, 5) : null;
+}
 
 type DunSatiri = {
   title: string;
@@ -32,7 +38,9 @@ export default async function GunlukPage() {
     // görev bugün tiklenmemiştir.
     supabase
       .from("tasks")
-      .select("id, title, emoji, sira, sabit, completions(done_date)")
+      .select(
+        "id, title, emoji, sira, sabit, hatirlatma, completions(done_date)",
+      )
       .eq("kind", "daily")
       .lte("start_date", bugun)
       .gt("end_date", bugun)
@@ -58,6 +66,7 @@ export default async function GunlukPage() {
       simge: satir.emoji,
       sira: satir.sira,
       sabit: satir.sabit,
+      hatirlatma: saatKisalt(satir.hatirlatma),
       yapildi: satir.completions.length > 0,
     }),
   );

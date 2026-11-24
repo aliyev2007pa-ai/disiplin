@@ -28,6 +28,8 @@ export type Hedef = {
   sira: number;
   /** Listenin en üstüne sabitlenmiş mi? */
   sabit: boolean;
+  /** "07:30" ya da null. Yalnızca planlı günlerde çalar. */
+  hatirlatma: string | null;
   /** Bu hedefin tiklendiği tüm günler (`yyyy-MM-dd`). */
   yapilanGunler: string[];
 };
@@ -167,6 +169,14 @@ export default function GoalCard({
                 )}
                 {hedef.gunler === null ? null : (
                   <Rozet>{gunlerEtiketi(hedef.gunler)}</Rozet>
+                )}
+                {hedef.hatirlatma === null ? null : (
+                  <Rozet>
+                    <span className="flex items-center gap-1 tabular-nums">
+                      <Simge ad="saat" className="h-3 w-3" />
+                      {hedef.hatirlatma}
+                    </span>
+                  </Rozet>
                 )}
               </div>
             </div>
