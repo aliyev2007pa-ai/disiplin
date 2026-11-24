@@ -1,10 +1,15 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, Reorder, motion } from "framer-motion";
 import { useState } from "react";
 
 import { gunEkle } from "@/lib/dates";
 import { tikSesi, titret } from "@/lib/feedback";
+import {
+  altGrubuYerlestir,
+  listeyiSirala,
+  surukleSonucu,
+} from "@/lib/siralama";
 import { createClient } from "@/lib/supabase/client";
 import { tikHatasiniCevir } from "@/lib/supabase/hatalar";
 
@@ -21,6 +26,10 @@ export type Gorev = {
   baslik: string;
   simge: string;
   yapildi: boolean;
+  /** Elle sıralama değeri (bkz. lib/siralama.ts). */
+  sira: number;
+  /** Listenin en üstüne sabitlenmiş mi? */
+  sabit: boolean;
 };
 
 export default function GunlukPanel({
@@ -46,6 +55,11 @@ export default function GunlukPanel({
   const yapilan = gorevler.filter((g) => g.yapildi).length;
   const toplam = gorevler.length;
   const hepsiBitti = toplam > 0 && yapilan === toplam;
+
+  // Ekrandaki iki grup. Sürükleme yalnızca kendi grubu içinde çalışır;
+  // gruplar arası geçiş "sabitle" ile yapılır, sürükleyerek değil.
+  const sabitler = gorevler.filter((g) => g.sabit);
+  const digerleri = gorevler.filter((g) => !g.sabit);
 
   function uyarGecici(metin: string) {
     setUyari(metin);
@@ -111,7 +125,21 @@ export default function GunlukPanel({
 
   async function ekle({ baslik, simge }: GorevTaslagi) {
     const geciciId = `gecici-${crypto.randomUUID()}`;
-    setGorevler((o) => [...o, { id: geciciId, baslik, simge, yapildi: false }]);
+
+    // Veritabanındaki varsayılan `sira` da epoch saniyesi; burada aynısını
+    // tahmin ediyoruz ki kart iyimser olarak doğru yere, listenin sonuna
+    // düşsün. Sunucudan gelen gerçek değerle az sonra değiştiriliyor.
+    setGorevler((o) => [
+      ...o,
+      {
+        id: geciciId,
+        baslik,
+        simge,
+        yapildi: false,
+        sira: Date.now() / 1000,
+        sabit: false,
+      },
+    ]);
 
     const supabase = createClient();
     const { data, error } = await supabase
@@ -125,7 +153,7 @@ export default function GunlukPanel({
         end_date: gunEkle(bugun, 1),
         duration_label: "Günlük",
       })
-      .select("id")
+      .select("id, sira")
       .single();
 
     if (error || !data) {
@@ -135,8 +163,77 @@ export default function GunlukPanel({
     }
 
     setGorevler((o) =>
-      o.map((g) => (g.id === geciciId ? { ...g, id: data.id } : g)),
+      o.map((g) =>
+        g.id === geciciId ? { ...g, id: data.id, sira: data.sira } : g,
+      ),
     );
+  }
+
+  async function siraKaydet(grup: Gorev[], kimlik: string) {
+    const sonuc = surukleSonucu(grup, kimlik);
+    if (sonuc.tur === "degismedi") return;
+
+    const yedek = gorevler;
+    const supabase = createClient();
+
+    if (sonuc.tur === "tek") {
+      setGorevler((o) =>
+        o.map((g) => (g.id === kimlik ? { ...g, sira: sonuc.sira } : g)),
+      );
+
+      const { error } = await supabase
+        .from("tasks")
+        .update({ sira: sonuc.sira })
+        .eq("id", kimlik);
+
+      if (error) {
+        setGorevler(yedek);
+        uyarGecici("Sıralama kaydedilemedi. Tekrar dene.");
+      }
+
+      return;
+    }
+
+    // Nadir yol: komşular arasına değer sığmadı, grup yeniden numaralandı.
+    const harita = new Map(sonuc.siralar.map((s) => [s.id, s.sira]));
+    setGorevler((o) =>
+      o.map((g) => (harita.has(g.id) ? { ...g, sira: harita.get(g.id)! } : g)),
+    );
+
+    for (const { id, sira } of sonuc.siralar) {
+      const { error } = await supabase
+        .from("tasks")
+        .update({ sira })
+        .eq("id", id);
+
+      if (error) {
+        setGorevler(yedek);
+        uyarGecici("Sıralama kaydedilemedi. Tekrar dene.");
+        return;
+      }
+    }
+  }
+
+  async function sabitDegistir(gorev: Gorev) {
+    const yeni = !gorev.sabit;
+    const yedek = gorevler;
+
+    setGorevler((o) =>
+      listeyiSirala(
+        o.map((g) => (g.id === gorev.id ? { ...g, sabit: yeni } : g)),
+      ),
+    );
+
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("tasks")
+      .update({ sabit: yeni })
+      .eq("id", gorev.id);
+
+    if (error) {
+      setGorevler(yedek);
+      uyarGecici("Sabitleme kaydedilemedi. Tekrar dene.");
+    }
   }
 
   async function guncelle(id: string, { baslik, simge }: GorevTaslagi) {
@@ -170,6 +267,43 @@ export default function GunlukPanel({
     }
   }
 
+  /**
+   * Tek bir sürüklenebilir grup. Bileşen değil, sadece JSX üreten bir
+   * yardımcı: bileşen yapılsaydı her render'da yeni bir tür sayılır ve
+   * React kartları söküp yeniden kurardı (animasyonlar sıfırlanırdı).
+   */
+  function gorevListesi(grup: Gorev[]) {
+    return (
+      <Reorder.Group
+        as="ul"
+        axis="y"
+        values={grup}
+        onReorder={(yeni) =>
+          setGorevler((o) => altGrubuYerlestir(o, yeni as Gorev[]))
+        }
+        className="flex flex-col gap-2.5"
+      >
+        <AnimatePresence initial={false} mode="popLayout">
+          {grup.map((gorev) => (
+            <TaskCard
+              key={gorev.id}
+              deger={gorev}
+              baslik={gorev.baslik}
+              simge={gorev.simge}
+              sabit={gorev.sabit}
+              yapildi={gorev.yapildi}
+              bekliyor={bekleyen.includes(gorev.id)}
+              suruklenebilir={grup.length > 1}
+              onTikla={() => void tikla(gorev.id)}
+              onSecenekler={() => setSecenekler(gorev)}
+              onSurukleBitti={() => void siraKaydet(grup, gorev.id)}
+            />
+          ))}
+        </AnimatePresence>
+      </Reorder.Group>
+    );
+  }
+
   return (
     <>
       <header className="flex items-center justify-between gap-4 pt-3 pb-6">
@@ -201,21 +335,18 @@ export default function GunlukPanel({
           hint="Bugün için küçük, tek seferlik işlerini buraya ekle."
         />
       ) : (
-        <ul className="flex flex-col gap-2.5">
-          <AnimatePresence initial={false} mode="popLayout">
-            {gorevler.map((gorev) => (
-              <TaskCard
-                key={gorev.id}
-                baslik={gorev.baslik}
-                simge={gorev.simge}
-                yapildi={gorev.yapildi}
-                bekliyor={bekleyen.includes(gorev.id)}
-                onTikla={() => void tikla(gorev.id)}
-                onSecenekler={() => setSecenekler(gorev)}
-              />
-            ))}
-          </AnimatePresence>
-        </ul>
+        <div className="flex flex-col gap-5">
+          {sabitler.length > 0 ? (
+            <section>
+              <h2 className="text-muted mb-2.5 text-[12.5px] font-semibold tracking-wide uppercase">
+                Sabitlenenler
+              </h2>
+              {gorevListesi(sabitler)}
+            </section>
+          ) : null}
+
+          {digerleri.length > 0 ? gorevListesi(digerleri) : null}
+        </div>
       )}
 
       <button
@@ -240,6 +371,12 @@ export default function GunlukPanel({
       <SecenekSheet
         acik={secenekler !== null}
         baslik={secenekler ? secenekler.baslik : ""}
+        sabit={secenekler ? secenekler.sabit : false}
+        onSabitle={() => {
+          const gorev = secenekler;
+          setSecenekler(null);
+          if (gorev) void sabitDegistir(gorev);
+        }}
         onDuzenle={() => {
           const gorev = secenekler;
           setSecenekler(null);

@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useAnimationControls } from "framer-motion";
+import { Reorder, motion, useAnimationControls, useDragControls } from "framer-motion";
 
 import CheckButton from "./CheckButton";
 import Simge from "./Simge";
@@ -14,25 +14,41 @@ import Simge from "./Simge";
  *  5-6. Titreşim ve ses (çağıran taraf tetikler).
  *  8. Geri alınınca aynı animasyon tersine ve daha hızlı oynar.
  *
- * Dış <li> listeye giriş/çıkışı ve yeniden dizilmeyi yönetir; içteki katman
- * yalnızca nefes animasyonunu taşır. İkisi ayrı tutulmazsa birbirini ezer.
+ * Dış <Reorder.Item> (bir <li>) listeye giriş/çıkışı, yeniden dizilmeyi ve
+ * sürüklemeyi yönetir; içteki katman yalnızca nefes animasyonunu taşır.
+ * İkisi ayrı tutulmazsa birbirini ezer.
+ *
+ * SÜRÜKLEME YALNIZCA TUTAMAKTAN başlar (`dragListener={false}`). Kartın
+ * tamamı sürüklenebilir olsaydı telefonda listeyi parmakla kaydırmak
+ * imkânsızlaşırdı: her kaydırma denemesi kartı tutup kaldırırdı.
  */
-export default function TaskCard({
+export default function TaskCard<T>({
+  deger,
   baslik,
   simge,
+  sabit,
   yapildi,
   bekliyor,
+  suruklenebilir,
   onTikla,
   onSecenekler,
+  onSurukleBitti,
 }: {
+  /** Reorder.Group'un `values` dizisindeki karşılığı. */
+  deger: T;
   baslik: string;
   simge: string;
+  sabit: boolean;
   yapildi: boolean;
   bekliyor?: boolean;
+  /** Grupta tek kart varsa tutamak gösterilmez. */
+  suruklenebilir: boolean;
   onTikla: () => void;
   onSecenekler: () => void;
+  onSurukleBitti: () => void;
 }) {
   const nefes = useAnimationControls();
+  const suruklemeKontrolu = useDragControls();
 
   function tikla() {
     // Yalnızca tiklerken nefes aldır; geri alırken sade kalsın.
@@ -47,8 +63,11 @@ export default function TaskCard({
   }
 
   return (
-    <motion.li
-      layout
+    <Reorder.Item
+      value={deger}
+      dragListener={false}
+      dragControls={suruklemeKontrolu}
+      onDragEnd={onSurukleBitti}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.96 }}
@@ -82,18 +101,36 @@ export default function TaskCard({
           />
 
           <p
-            className={`flex-1 text-[15.5px] leading-snug font-medium transition-colors duration-300 ${
+            className={`flex min-w-0 flex-1 items-center gap-1.5 text-[15.5px] leading-snug font-medium transition-colors duration-300 ${
               yapildi ? "text-muted line-through" : "text-ink"
             }`}
           >
-            {baslik}
+            {sabit ? (
+              <Simge
+                ad="raptiye"
+                className="text-bordo h-3.5 w-3.5 shrink-0"
+              />
+            ) : null}
+            <span className="min-w-0 flex-1">{baslik}</span>
           </p>
+
+          {suruklenebilir ? (
+            <button
+              type="button"
+              onPointerDown={(olay) => suruklemeKontrolu.start(olay)}
+              aria-label={`${baslik} — sürükleyerek sırala`}
+              style={{ touchAction: "none" }}
+              className="text-muted hover:bg-bordo-soft hover:text-ink flex h-9 w-6 shrink-0 cursor-grab items-center justify-center rounded-lg transition-colors active:cursor-grabbing"
+            >
+              <Simge ad="tutamak" className="h-5 w-5" />
+            </button>
+          ) : null}
 
           <button
             type="button"
             onClick={onSecenekler}
             aria-label={`${baslik} — seçenekler`}
-            className="text-muted hover:bg-bordo-soft hover:text-ink flex h-9 w-7 shrink-0 items-center justify-center rounded-lg transition-colors"
+            className="text-muted hover:bg-bordo-soft hover:text-ink flex h-9 w-6 shrink-0 items-center justify-center rounded-lg transition-colors"
           >
             <Simge ad="ucNokta" className="h-5 w-5" />
           </button>
@@ -106,6 +143,6 @@ export default function TaskCard({
           />
         </div>
       </motion.div>
-    </motion.li>
+    </Reorder.Item>
   );
 }

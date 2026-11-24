@@ -18,6 +18,8 @@ type SatirBicimi = {
   end_date: string;
   duration_label: string;
   weekdays: number[] | null;
+  sira: number;
+  sabit: boolean;
   completions: { done_date: string }[];
 };
 
@@ -30,12 +32,14 @@ export default async function HedeflerPage() {
   const { data } = await supabase
     .from("tasks")
     .select(
-      "id, title, emoji, minutes, start_date, end_date, duration_label, weekdays, completions(done_date)",
+      "id, title, emoji, minutes, start_date, end_date, duration_label, weekdays, sira, sabit, completions(done_date)",
     )
     .eq("kind", "goal")
     .lte("start_date", bugun)
     .gt("end_date", bugun)
-    .order("created_at", { ascending: true });
+    // Sabitlenenler üstte, sonra elle verilen sıra (bkz. 0006 migration).
+    .order("sabit", { ascending: false })
+    .order("sira", { ascending: true });
 
   const hedefler: Hedef[] = ((data ?? []) as SatirBicimi[]).map((satir) => ({
     id: satir.id,
@@ -46,6 +50,8 @@ export default async function HedeflerPage() {
     gunler: satir.weekdays,
     baslangic: satir.start_date,
     bitisHaric: satir.end_date,
+    sira: satir.sira,
+    sabit: satir.sabit,
     yapilanGunler: satir.completions.map((tik) => tik.done_date),
   }));
 

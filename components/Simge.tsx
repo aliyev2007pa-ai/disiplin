@@ -234,6 +234,30 @@ const TANIMLAR: Record<string, Tanim> = {
     ),
   },
 
+  tutamak: {
+    etiket: "Sürükle",
+    cizim: (
+      <g fill="currentColor" stroke="none">
+        <circle cx="9.2" cy="6.4" r="1.35" />
+        <circle cx="14.8" cy="6.4" r="1.35" />
+        <circle cx="9.2" cy="12" r="1.35" />
+        <circle cx="14.8" cy="12" r="1.35" />
+        <circle cx="9.2" cy="17.6" r="1.35" />
+        <circle cx="14.8" cy="17.6" r="1.35" />
+      </g>
+    ),
+  },
+
+  raptiye: {
+    etiket: "Sabitle",
+    cizim: (
+      <>
+        <path d="M9.3 3.6h5.4l-.8 5.4 3.1 3v1.4H7v-1.4l3.1-3z" />
+        <path d="M12 13.4v7" />
+      </>
+    ),
+  },
+
   cop: {
     etiket: "Sil",
     cizim: (

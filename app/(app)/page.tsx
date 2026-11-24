@@ -9,6 +9,8 @@ type BugunSatiri = {
   id: string;
   title: string;
   emoji: string;
+  sira: number;
+  sabit: boolean;
   completions: { done_date: string }[];
 };
 
@@ -30,12 +32,14 @@ export default async function GunlukPage() {
     // görev bugün tiklenmemiştir.
     supabase
       .from("tasks")
-      .select("id, title, emoji, completions(done_date)")
+      .select("id, title, emoji, sira, sabit, completions(done_date)")
       .eq("kind", "daily")
       .lte("start_date", bugun)
       .gt("end_date", bugun)
       .eq("completions.done_date", bugun)
-      .order("created_at", { ascending: true }),
+      // Sabitlenenler üstte, sonra elle verilen sıra (bkz. 0006 migration).
+      .order("sabit", { ascending: false })
+      .order("sira", { ascending: true }),
 
     // Dün özeti için: dün aktif olan TÜM görevler (günlük + hedef).
     supabase
@@ -52,6 +56,8 @@ export default async function GunlukPage() {
       id: satir.id,
       baslik: satir.title,
       simge: satir.emoji,
+      sira: satir.sira,
+      sabit: satir.sabit,
       yapildi: satir.completions.length > 0,
     }),
   );

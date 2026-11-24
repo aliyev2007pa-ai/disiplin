@@ -1,6 +1,11 @@
 "use client";
 
-import { motion, useAnimationControls } from "framer-motion";
+import {
+  Reorder,
+  motion,
+  useAnimationControls,
+  useDragControls,
+} from "framer-motion";
 import { useMemo } from "react";
 
 import { gunAdi } from "@/lib/dates";
@@ -19,6 +24,10 @@ export type Hedef = {
   gunler: number[] | null;
   baslangic: string;
   bitisHaric: string;
+  /** Elle sıralama değeri; küçükten büyüğe dizilir (bkz. lib/siralama.ts). */
+  sira: number;
+  /** Listenin en üstüne sabitlenmiş mi? */
+  sabit: boolean;
   /** Bu hedefin tiklendiği tüm günler (`yyyy-MM-dd`). */
   yapilanGunler: string[];
 };
@@ -42,16 +51,22 @@ export default function GoalCard({
   hedef,
   bugun,
   bekliyor,
+  suruklenebilir,
   onTikla,
   onSecenekler,
+  onSurukleBitti,
 }: {
   hedef: Hedef;
   bugun: string;
   bekliyor?: boolean;
+  /** Grupta tek kart varsa tutamak gösterilmez. */
+  suruklenebilir: boolean;
   onTikla: () => void;
   onSecenekler: () => void;
+  onSurukleBitti: () => void;
 }) {
   const nefes = useAnimationControls();
+  const suruklemeKontrolu = useDragControls();
 
   const yapilanKume = useMemo(
     () => new Set(hedef.yapilanGunler),
@@ -92,8 +107,11 @@ export default function GoalCard({
   }
 
   return (
-    <motion.li
-      layout
+    <Reorder.Item
+      value={hedef}
+      dragListener={false}
+      dragControls={suruklemeKontrolu}
+      onDragEnd={onSurukleBitti}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.96 }}
@@ -129,11 +147,17 @@ export default function GoalCard({
 
             <div className="min-w-0 flex-1">
               <p
-                className={`text-[15.5px] leading-snug font-semibold transition-colors duration-300 ${
+                className={`flex items-center gap-1.5 text-[15.5px] leading-snug font-semibold transition-colors duration-300 ${
                   yapildi ? "text-muted line-through" : "text-ink"
                 }`}
               >
-                {hedef.baslik}
+                {hedef.sabit ? (
+                  <Simge
+                    ad="raptiye"
+                    className="text-bordo h-3.5 w-3.5 shrink-0"
+                  />
+                ) : null}
+                <span className="min-w-0 flex-1">{hedef.baslik}</span>
               </p>
 
               <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
@@ -147,11 +171,23 @@ export default function GoalCard({
               </div>
             </div>
 
+            {suruklenebilir ? (
+              <button
+                type="button"
+                onPointerDown={(olay) => suruklemeKontrolu.start(olay)}
+                aria-label={`${hedef.baslik} — sürükleyerek sırala`}
+                style={{ touchAction: "none" }}
+                className="text-muted hover:bg-bordo-soft hover:text-ink flex h-9 w-6 shrink-0 cursor-grab items-center justify-center rounded-lg transition-colors active:cursor-grabbing"
+              >
+                <Simge ad="tutamak" className="h-5 w-5" />
+              </button>
+            ) : null}
+
             <button
               type="button"
               onClick={onSecenekler}
               aria-label={`${hedef.baslik} — seçenekler`}
-              className="text-muted hover:bg-bordo-soft hover:text-ink flex h-9 w-7 shrink-0 items-center justify-center rounded-lg transition-colors"
+              className="text-muted hover:bg-bordo-soft hover:text-ink flex h-9 w-6 shrink-0 items-center justify-center rounded-lg transition-colors"
             >
               <Simge ad="ucNokta" className="h-5 w-5" />
             </button>
@@ -215,6 +251,6 @@ export default function GoalCard({
           </div>
         </div>
       </motion.div>
-    </motion.li>
+    </Reorder.Item>
   );
 }

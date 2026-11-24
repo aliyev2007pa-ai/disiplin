@@ -1,10 +1,15 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, Reorder, motion } from "framer-motion";
 import { useState } from "react";
 
 import { gunEkle, kisaTarih } from "@/lib/dates";
 import { tikSesi, titret } from "@/lib/feedback";
+import {
+  altGrubuYerlestir,
+  listeyiSirala,
+  surukleSonucu,
+} from "@/lib/siralama";
 import { planliMi } from "@/lib/stats";
 import { createClient } from "@/lib/supabase/client";
 import { tikHatasiniCevir } from "@/lib/supabase/hatalar";
@@ -51,13 +56,23 @@ export default function HedeflerPanel({
   const [silinecek, setSilinecek] = useState<Hedef | null>(null);
   const [uyari, setUyari] = useState<string | null>(null);
 
-  const bugunkuler = hedefler.filter((h) => planliMi(bugun, h.gunler));
-  const dinlenenler = hedefler.filter((h) => !planliMi(bugun, h.gunler));
+  // Sayaç ve halka SABİTLEMEDEN bağımsız: bugün planlı olan her hedefi sayar.
+  const bugunPlanlilar = hedefler.filter((h) => planliMi(bugun, h.gunler));
 
-  const yapilan = bugunkuler.filter((h) =>
+  // Ekrandaki üç grup. Sabitlenenler, bugün planlı olsun olmasın en üstte
+  // kendi bölümünde durur; sürükleme yalnızca kendi grubu içinde çalışır.
+  const sabitler = hedefler.filter((h) => h.sabit);
+  const bugunkuler = hedefler.filter(
+    (h) => !h.sabit && planliMi(bugun, h.gunler),
+  );
+  const dinlenenler = hedefler.filter(
+    (h) => !h.sabit && !planliMi(bugun, h.gunler),
+  );
+
+  const yapilan = bugunPlanlilar.filter((h) =>
     h.yapilanGunler.includes(bugun),
   ).length;
-  const toplam = bugunkuler.length;
+  const toplam = bugunPlanlilar.length;
   const hepsiBitti = toplam > 0 && yapilan === toplam;
 
   function uyarGecici(metin: string) {
@@ -134,6 +149,10 @@ export default function HedeflerPanel({
       gunler: yeni.gunler,
       baslangic: bugun,
       bitisHaric: yeni.bitisHaric,
+      // Veritabanı varsayılanı da epoch saniyesi; kart iyimser olarak
+      // listenin sonuna düşsün diye aynısını tahmin ediyoruz.
+      sira: Date.now() / 1000,
+      sabit: false,
       yapilanGunler: [],
     };
 
@@ -153,7 +172,7 @@ export default function HedeflerPanel({
         duration_label: yeni.sureEtiketi,
         weekdays: yeni.gunler,
       })
-      .select("id")
+      .select("id, sira")
       .single();
 
     if (error || !data) {
@@ -163,7 +182,9 @@ export default function HedeflerPanel({
     }
 
     setHedefler((o) =>
-      o.map((h) => (h.id === geciciId ? { ...h, id: data.id } : h)),
+      o.map((h) =>
+        h.id === geciciId ? { ...h, id: data.id, sira: data.sira } : h,
+      ),
     );
   }
 
@@ -200,6 +221,73 @@ export default function HedeflerPanel({
     }
   }
 
+  async function siraKaydet(grup: Hedef[], kimlik: string) {
+    const sonuc = surukleSonucu(grup, kimlik);
+    if (sonuc.tur === "degismedi") return;
+
+    const yedek = hedefler;
+    const supabase = createClient();
+
+    if (sonuc.tur === "tek") {
+      setHedefler((o) =>
+        o.map((h) => (h.id === kimlik ? { ...h, sira: sonuc.sira } : h)),
+      );
+
+      const { error } = await supabase
+        .from("tasks")
+        .update({ sira: sonuc.sira })
+        .eq("id", kimlik);
+
+      if (error) {
+        setHedefler(yedek);
+        uyarGecici("Sıralama kaydedilemedi. Tekrar dene.");
+      }
+
+      return;
+    }
+
+    // Nadir yol: komşular arasına değer sığmadı, grup yeniden numaralandı.
+    const harita = new Map(sonuc.siralar.map((s) => [s.id, s.sira]));
+    setHedefler((o) =>
+      o.map((h) => (harita.has(h.id) ? { ...h, sira: harita.get(h.id)! } : h)),
+    );
+
+    for (const { id, sira } of sonuc.siralar) {
+      const { error } = await supabase
+        .from("tasks")
+        .update({ sira })
+        .eq("id", id);
+
+      if (error) {
+        setHedefler(yedek);
+        uyarGecici("Sıralama kaydedilemedi. Tekrar dene.");
+        return;
+      }
+    }
+  }
+
+  async function sabitDegistir(hedef: Hedef) {
+    const yeni = !hedef.sabit;
+    const yedek = hedefler;
+
+    setHedefler((o) =>
+      listeyiSirala(
+        o.map((h) => (h.id === hedef.id ? { ...h, sabit: yeni } : h)),
+      ),
+    );
+
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("tasks")
+      .update({ sabit: yeni })
+      .eq("id", hedef.id);
+
+    if (error) {
+      setHedefler(yedek);
+      uyarGecici("Sabitleme kaydedilemedi. Tekrar dene.");
+    }
+  }
+
   async function sil(hedef: Hedef) {
     const yedek = hedefler;
     setHedefler((o) => o.filter((h) => h.id !== hedef.id));
@@ -211,6 +299,43 @@ export default function HedeflerPanel({
       setHedefler(yedek);
       uyarGecici("Hedef silinemedi. Tekrar dene.");
     }
+  }
+
+  /**
+   * Tek bir sürüklenebilir grup. Bileşen değil, sadece JSX üreten bir
+   * yardımcı: bileşen yapılsaydı her render'da yeni bir tür sayılır ve React
+   * kartları söküp yeniden kurardı (animasyonlar sıfırlanırdı).
+   *
+   * `tiklenebilir` false ise kart dinlenme günündedir; tik yerine kesik
+   * çizgili boş halka gösterilir (GoalCard kendi karar veriyor).
+   */
+  function hedefListesi(grup: Hedef[]) {
+    return (
+      <Reorder.Group
+        as="ul"
+        axis="y"
+        values={grup}
+        onReorder={(yeni) =>
+          setHedefler((o) => altGrubuYerlestir(o, yeni as Hedef[]))
+        }
+        className="flex flex-col gap-2.5"
+      >
+        <AnimatePresence initial={false} mode="popLayout">
+          {grup.map((hedef) => (
+            <GoalCard
+              key={hedef.id}
+              hedef={hedef}
+              bugun={bugun}
+              bekliyor={bekleyen.includes(hedef.id)}
+              suruklenebilir={grup.length > 1}
+              onTikla={() => void tikla(hedef.id)}
+              onSecenekler={() => setSecenekler(hedef)}
+              onSurukleBitti={() => void siraKaydet(grup, hedef.id)}
+            />
+          ))}
+        </AnimatePresence>
+      </Reorder.Group>
+    );
   }
 
   return (
@@ -247,26 +372,21 @@ export default function HedeflerPanel({
         />
       ) : (
         <div className="flex flex-col gap-6">
+          {sabitler.length > 0 ? (
+            <section>
+              <h2 className="text-muted mb-2.5 text-[12.5px] font-semibold tracking-wide uppercase">
+                Sabitlenenler
+              </h2>
+              {hedefListesi(sabitler)}
+            </section>
+          ) : null}
+
           {bugunkuler.length > 0 ? (
             <section>
               <h2 className="text-muted mb-2.5 text-[12.5px] font-semibold tracking-wide uppercase">
                 Bugün yapılacaklar
               </h2>
-
-              <ul className="flex flex-col gap-2.5">
-                <AnimatePresence initial={false} mode="popLayout">
-                  {bugunkuler.map((hedef) => (
-                    <GoalCard
-                      key={hedef.id}
-                      hedef={hedef}
-                      bugun={bugun}
-                      bekliyor={bekleyen.includes(hedef.id)}
-                      onTikla={() => void tikla(hedef.id)}
-                      onSecenekler={() => setSecenekler(hedef)}
-                    />
-                  ))}
-                </AnimatePresence>
-              </ul>
+              {hedefListesi(bugunkuler)}
             </section>
           ) : null}
 
@@ -275,20 +395,7 @@ export default function HedeflerPanel({
               <h2 className="text-muted mb-2.5 text-[12.5px] font-semibold tracking-wide uppercase">
                 Bugün dinlenme günü
               </h2>
-
-              <ul className="flex flex-col gap-2.5">
-                <AnimatePresence initial={false} mode="popLayout">
-                  {dinlenenler.map((hedef) => (
-                    <GoalCard
-                      key={hedef.id}
-                      hedef={hedef}
-                      bugun={bugun}
-                      onTikla={() => undefined}
-                      onSecenekler={() => setSecenekler(hedef)}
-                    />
-                  ))}
-                </AnimatePresence>
-              </ul>
+              {hedefListesi(dinlenenler)}
             </section>
           ) : null}
         </div>
@@ -329,6 +436,12 @@ export default function HedeflerPanel({
       <SecenekSheet
         acik={secenekler !== null}
         baslik={secenekler ? secenekler.baslik : ""}
+        sabit={secenekler ? secenekler.sabit : false}
+        onSabitle={() => {
+          const hedef = secenekler;
+          setSecenekler(null);
+          if (hedef) void sabitDegistir(hedef);
+        }}
         onDuzenle={() => {
           const hedef = secenekler;
           setSecenekler(null);
