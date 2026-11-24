@@ -44,6 +44,16 @@ const TABS: Tab[] = [
     ),
   },
   {
+    href: "/istatistik",
+    label: "İstatistik",
+    icon: (
+      <svg {...iconProps}>
+        <path d="M3.6 20.4h16.8" />
+        <path d="M6.6 20.4v-6.2M11.4 20.4V8.6M16.2 20.4v-9.4" />
+      </svg>
+    ),
+  },
+  {
     href: "/tamamlananlar",
     label: "Tamamlananlar",
     icon: (

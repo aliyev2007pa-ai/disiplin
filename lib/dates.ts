@@ -63,3 +63,13 @@ export function gunAdi(isoGun: string): string {
 export function kisaTarih(isoGun: string): string {
   return format(parseISO(isoGun), "d MMM yyyy", { locale: tr });
 }
+
+/** `2026-11-22` → `Kas` (ısı haritasının üstündeki ay etiketleri). */
+export function kisaAy(isoGun: string): string {
+  return format(parseISO(isoGun), "LLL", { locale: tr });
+}
+
+/** `2026-11-22` → `11`: ay etiketinin değişip değişmediğini anlamak için. */
+export function ayNumarasi(isoGun: string): string {
+  return isoGun.slice(0, 7);
+}

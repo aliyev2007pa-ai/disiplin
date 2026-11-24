@@ -234,6 +234,27 @@ const TANIMLAR: Record<string, Tanim> = {
     ),
   },
 
+  grafik: {
+    etiket: "İstatistik",
+    cizim: (
+      <>
+        <path d="M3.6 20.4h16.8" />
+        <path d="M6.6 20.4v-6.2M11.4 20.4V8.6M16.2 20.4v-9.4" />
+      </>
+    ),
+  },
+
+  yukselis: {
+    etiket: "Rekor",
+    cizim: (
+      <>
+        <path d="M3.4 19.8h17.2" />
+        <path d="m5.8 16.2 4-4.8 3.4 3 5.4-6.2" />
+        <path d="M15.2 8.2h4v4" />
+      </>
+    ),
+  },
+
   tutamak: {
     etiket: "Sürükle",
     cizim: (
