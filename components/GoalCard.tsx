@@ -43,13 +43,13 @@ export default function GoalCard({
   bugun,
   bekliyor,
   onTikla,
-  onSil,
+  onSecenekler,
 }: {
   hedef: Hedef;
   bugun: string;
   bekliyor?: boolean;
   onTikla: () => void;
-  onSil: () => void;
+  onSecenekler: () => void;
 }) {
   const nefes = useAnimationControls();
 
@@ -149,11 +149,11 @@ export default function GoalCard({
 
             <button
               type="button"
-              onClick={onSil}
+              onClick={onSecenekler}
               aria-label={`${hedef.baslik} — seçenekler`}
-              className="text-muted hover:bg-bordo-soft hover:text-ink flex h-9 w-7 shrink-0 items-center justify-center rounded-lg text-[19px] leading-none transition-colors"
+              className="text-muted hover:bg-bordo-soft hover:text-ink flex h-9 w-7 shrink-0 items-center justify-center rounded-lg transition-colors"
             >
-              ⋯
+              <Simge ad="ucNokta" className="h-5 w-5" />
             </button>
 
             {ist.bugunPlanli ? (

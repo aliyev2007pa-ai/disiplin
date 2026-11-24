@@ -234,6 +234,29 @@ const TANIMLAR: Record<string, Tanim> = {
     ),
   },
 
+  cop: {
+    etiket: "Sil",
+    cizim: (
+      <>
+        <path d="M4 6.8h16" />
+        <path d="M9.4 6.8V5.3a1.7 1.7 0 011.7-1.7h1.8a1.7 1.7 0 011.7 1.7v1.5" />
+        <path d="M6.5 6.8l.9 12a1.8 1.8 0 001.8 1.7h5.6a1.8 1.8 0 001.8-1.7l.9-12" />
+        <path d="M10.4 10.6v6.2M13.6 10.6v6.2" />
+      </>
+    ),
+  },
+
+  ucNokta: {
+    etiket: "Seçenekler",
+    cizim: (
+      <g fill="currentColor" stroke="none">
+        <circle cx="5.6" cy="12" r="1.45" />
+        <circle cx="12" cy="12" r="1.45" />
+        <circle cx="18.4" cy="12" r="1.45" />
+      </g>
+    ),
+  },
+
   madalya: {
     etiket: "Başarı",
     cizim: (

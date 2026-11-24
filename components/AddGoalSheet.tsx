@@ -21,39 +21,64 @@ import Simge, {
 
 const EN_UZUN_BASLIK = 120;
 const EN_UZUN_DAKIKA = 1440;
+const OZEL = "ozel";
 
-export type YeniHedef = {
+/** Bir hedefin düzenlenebilir alanları. */
+export type HedefAlanlari = {
   baslik: string;
   simge: string;
   dakika: number | null;
-  bitisHaric: string;
-  sureEtiketi: string;
   gunler: number[] | null;
 };
 
-const OZEL = "ozel";
+/** Yeni hedefte bunlara ek olarak süre de belirlenir. */
+export type YeniHedef = HedefAlanlari & {
+  bitisHaric: string;
+  sureEtiketi: string;
+};
 
-export default function AddGoalSheet({
-  acik,
+export type DuzenlenenHedef = HedefAlanlari & {
+  /** Salt okunur gösterim: "Haftalık · 9 Kas 2026 – 15 Kas 2026". */
+  sureBilgisi: string;
+};
+
+/**
+ * Form, BottomSheet'in çocuğu olduğu için panel her açıldığında sıfırdan
+ * kurulur ve başlangıç değerlerini o anki `duzenlenen`den alır.
+ *
+ * DÜZENLEMEDE SÜRE YOKTUR: başlangıç/bitiş tarihi ve süre etiketi geçmiş
+ * istatistiğin paydasıdır ("90 günün 84'ünde yaptın"). Sonradan değişirse
+ * geçmiş rakamlar anlamını yitirir. Süresi farklı olsun isteyen yeni hedef
+ * açar; eskisi Tamamlananlar'da kalır. (Veritabanında da bu sütunlara
+ * güncelleme yetkisi verilmedi — bkz. 0005 migration.)
+ */
+function HedefFormu({
   bugun,
+  duzenlenen,
+  onKaydet,
   onKapat,
-  onEkle,
 }: {
-  acik: boolean;
   bugun: string;
+  duzenlenen: DuzenlenenHedef | null;
+  onKaydet: (alanlar: HedefAlanlari, yeniSure: YeniHedef | null) => void;
   onKapat: () => void;
-  onEkle: (hedef: YeniHedef) => void;
 }) {
-  const [baslik, setBaslik] = useState("");
-  const [simge, setSimge] = useState<string>(VARSAYILAN_SIMGE);
-  const [dakika, setDakika] = useState("");
+  const [baslik, setBaslik] = useState(duzenlenen?.baslik ?? "");
+  const [simge, setSimge] = useState(duzenlenen?.simge ?? VARSAYILAN_SIMGE);
+  const [dakika, setDakika] = useState(
+    duzenlenen?.dakika == null ? "" : String(duzenlenen.dakika),
+  );
   const [sureKimligi, setSureKimligi] = useState<string>(
     SURE_SECENEKLERI[0].kimlik,
   );
   const [ozelSayi, setOzelSayi] = useState("30");
   const [ozelBirim, setOzelBirim] = useState<Birim>("gun");
-  const [herGun, setHerGun] = useState(true);
-  const [secilenGunler, setSecilenGunler] = useState<number[]>([]);
+  const [herGun, setHerGun] = useState(
+    duzenlenen ? duzenlenen.gunler === null : true,
+  );
+  const [secilenGunler, setSecilenGunler] = useState<number[]>(
+    duzenlenen?.gunler ?? [],
+  );
 
   const ozelMi = sureKimligi === OZEL;
   const ozelSayisi = Number.parseInt(ozelSayi, 10);
@@ -64,24 +89,8 @@ export default function AddGoalSheet({
 
   const gonderilebilir =
     baslik.trim().length > 0 &&
-    (!ozelMi || ozelGecerli) &&
+    (duzenlenen !== null || !ozelMi || ozelGecerli) &&
     (herGun || secilenGunler.length > 0);
-
-  function sifirla() {
-    setBaslik("");
-    setSimge(VARSAYILAN_SIMGE);
-    setDakika("");
-    setSureKimligi(SURE_SECENEKLERI[0].kimlik);
-    setOzelSayi("30");
-    setOzelBirim("gun");
-    setHerGun(true);
-    setSecilenGunler([]);
-  }
-
-  function kapat() {
-    sifirla();
-    onKapat();
-  }
 
   function gunuDegistir(iso: number) {
     setSecilenGunler((oncekiler) =>
@@ -95,17 +104,9 @@ export default function AddGoalSheet({
     olay.preventDefault();
     if (!gonderilebilir) return;
 
-    const sayi = ozelMi
-      ? ozelSayisi
-      : (SURE_SECENEKLERI.find((s) => s.kimlik === sureKimligi)?.sayi ?? 1);
-    const birim = ozelMi
-      ? ozelBirim
-      : (SURE_SECENEKLERI.find((s) => s.kimlik === sureKimligi)?.birim ??
-        "hafta");
-
     const girilenDakika = Number.parseInt(dakika, 10);
 
-    onEkle({
+    const alanlar: HedefAlanlari = {
       baslik: baslik.trim(),
       simge,
       dakika:
@@ -114,82 +115,110 @@ export default function AddGoalSheet({
         girilenDakika <= EN_UZUN_DAKIKA
           ? girilenDakika
           : null,
+      gunler: herGun ? null : [...secilenGunler].sort((a, b) => a - b),
+    };
+
+    if (duzenlenen) {
+      onKaydet(alanlar, null);
+      onKapat();
+      return;
+    }
+
+    const secilen = SURE_SECENEKLERI.find((s) => s.kimlik === sureKimligi);
+    const sayi = ozelMi ? ozelSayisi : (secilen?.sayi ?? 1);
+    const birim = ozelMi ? ozelBirim : (secilen?.birim ?? "hafta");
+
+    onKaydet(alanlar, {
+      ...alanlar,
       bitisHaric: bitisTarihi(bugun, sayi, birim),
       sureEtiketi: sureEtiketi(sayi, birim),
-      gunler: herGun ? null : [...secilenGunler].sort((a, b) => a - b),
     });
 
-    kapat();
+    onKapat();
   }
 
   return (
-    <BottomSheet acik={acik} baslik="Hedef ekle" onKapat={kapat}>
-      <form onSubmit={gonder} className="flex flex-col gap-5">
-        <label className="block">
-          <span className="text-ink block text-[13.5px] font-semibold">
-            Hedefin ne?
-          </span>
-          <input
-            type="text"
-            value={baslik}
-            onChange={(e) => setBaslik(e.target.value)}
-            maxLength={EN_UZUN_BASLIK}
-            required
-            autoFocus
-            placeholder="İngilizce"
-            className="border-bordo-soft bg-surface text-ink placeholder:text-muted focus:border-bordo mt-1.5 block w-full rounded-xl border px-4 py-3 text-[15px] outline-none transition-colors"
-          />
-        </label>
+    <form onSubmit={gonder} className="flex flex-col gap-5">
+      <label className="block">
+        <span className="text-ink block text-[13.5px] font-semibold">
+          Hedefin ne?
+        </span>
+        <input
+          type="text"
+          value={baslik}
+          onChange={(e) => setBaslik(e.target.value)}
+          maxLength={EN_UZUN_BASLIK}
+          required
+          autoFocus
+          placeholder="İngilizce"
+          className="border-bordo-soft bg-surface text-ink placeholder:text-muted focus:border-bordo mt-1.5 block w-full rounded-xl border px-4 py-3 text-[15px] outline-none transition-colors"
+        />
+      </label>
 
+      <div>
+        <span className="text-ink block text-[13.5px] font-semibold">
+          Simge
+        </span>
+        <div className="mt-2 grid grid-cols-7 gap-1.5">
+          {SIMGE_LISTESI.map((secenek) => {
+            const secili = secenek === simge;
+
+            return (
+              <button
+                key={secenek}
+                type="button"
+                onClick={() => setSimge(secenek)}
+                aria-pressed={secili}
+                aria-label={simgeEtiketi(secenek)}
+                title={simgeEtiketi(secenek)}
+                className={`flex aspect-square items-center justify-center rounded-xl border transition-colors ${
+                  secili
+                    ? "border-bordo bg-bordo-soft text-bordo"
+                    : "border-transparent bg-surface text-muted hover:border-bordo-soft hover:text-ink"
+                }`}
+              >
+                <Simge ad={secenek} className="h-5 w-5" />
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <label className="block">
+        <span className="text-ink block text-[13.5px] font-semibold">
+          Günlük süre{" "}
+          <span className="text-muted font-normal">(isteğe bağlı)</span>
+        </span>
+        <div className="mt-1.5 flex items-center gap-2">
+          <input
+            type="number"
+            inputMode="numeric"
+            value={dakika}
+            onChange={(e) => setDakika(e.target.value)}
+            min={1}
+            max={EN_UZUN_DAKIKA}
+            placeholder="30"
+            className="border-bordo-soft bg-surface text-ink placeholder:text-muted focus:border-bordo w-24 rounded-xl border px-4 py-3 text-[15px] outline-none transition-colors"
+          />
+          <span className="text-muted text-[14px]">dakika</span>
+        </div>
+      </label>
+
+      {duzenlenen ? (
         <div>
           <span className="text-ink block text-[13.5px] font-semibold">
-            Simge
+            Süre
           </span>
-          <div className="mt-2 grid grid-cols-7 gap-1.5">
-            {SIMGE_LISTESI.map((secenek) => {
-              const secili = secenek === simge;
-
-              return (
-                <button
-                  key={secenek}
-                  type="button"
-                  onClick={() => setSimge(secenek)}
-                  aria-pressed={secili}
-                  aria-label={simgeEtiketi(secenek)}
-                  title={simgeEtiketi(secenek)}
-                  className={`flex aspect-square items-center justify-center rounded-xl border transition-colors ${
-                    secili
-                      ? "border-bordo bg-bordo-soft text-bordo"
-                      : "border-transparent bg-surface text-muted hover:border-bordo-soft hover:text-ink"
-                  }`}
-                >
-                  <Simge ad={secenek} className="h-5 w-5" />
-                </button>
-              );
-            })}
-          </div>
+          <p className="border-bordo-soft bg-surface text-muted mt-1.5 rounded-xl border border-dashed px-4 py-3 text-[13.5px] leading-snug">
+            {duzenlenen.sureBilgisi}
+            <br />
+            <span className="text-[12.5px]">
+              Süre sonradan değiştirilemez; geçmiş istatistik buna göre
+              hesaplanıyor. Farklı süre için yeni hedef aç.
+            </span>
+          </p>
         </div>
-
-        <label className="block">
-          <span className="text-ink block text-[13.5px] font-semibold">
-            Günlük süre{" "}
-            <span className="text-muted font-normal">(isteğe bağlı)</span>
-          </span>
-          <div className="mt-1.5 flex items-center gap-2">
-            <input
-              type="number"
-              inputMode="numeric"
-              value={dakika}
-              onChange={(e) => setDakika(e.target.value)}
-              min={1}
-              max={EN_UZUN_DAKIKA}
-              placeholder="30"
-              className="border-bordo-soft bg-surface text-ink placeholder:text-muted focus:border-bordo w-24 rounded-xl border px-4 py-3 text-[15px] outline-none transition-colors"
-            />
-            <span className="text-muted text-[14px]">dakika</span>
-          </div>
-        </label>
-
+      ) : (
         <div>
           <span className="text-ink block text-[13.5px] font-semibold">
             Süre
@@ -251,81 +280,116 @@ export default function AddGoalSheet({
             </p>
           ) : null}
         </div>
+      )}
 
-        <div>
-          <span className="text-ink block text-[13.5px] font-semibold">
-            Hangi günler
-          </span>
+      <div>
+        <span className="text-ink block text-[13.5px] font-semibold">
+          Hangi günler
+        </span>
 
-          <div className="mt-2 flex gap-1.5">
-            <button
-              type="button"
-              onClick={() => setHerGun(true)}
-              aria-pressed={herGun}
-              className={`flex-1 rounded-full border px-3.5 py-2 text-[13.5px] font-medium transition-colors ${
-                herGun
-                  ? "border-bordo bg-bordo-soft text-bordo"
-                  : "border-bordo-soft bg-surface text-muted hover:border-bordo"
-              }`}
-            >
-              Her gün
-            </button>
-            <button
-              type="button"
-              onClick={() => setHerGun(false)}
-              aria-pressed={!herGun}
-              className={`flex-1 rounded-full border px-3.5 py-2 text-[13.5px] font-medium transition-colors ${
-                !herGun
-                  ? "border-bordo bg-bordo-soft text-bordo"
-                  : "border-bordo-soft bg-surface text-muted hover:border-bordo"
-              }`}
-            >
-              Gün seç
-            </button>
-          </div>
-
-          {herGun ? null : (
-            <>
-              <div className="mt-2.5 grid grid-cols-7 gap-1.5">
-                {GUNLER.map((gun) => {
-                  const secili = secilenGunler.includes(gun.iso);
-
-                  return (
-                    <button
-                      key={gun.iso}
-                      type="button"
-                      onClick={() => gunuDegistir(gun.iso)}
-                      aria-pressed={secili}
-                      aria-label={gun.tam}
-                      className={`rounded-xl border py-2.5 text-[12.5px] font-semibold transition-colors ${
-                        secili
-                          ? "border-bordo bg-bordo-soft text-bordo"
-                          : "border-bordo-soft bg-surface text-muted hover:border-bordo"
-                      }`}
-                    >
-                      {gun.kisa}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {secilenGunler.length === 0 ? (
-                <p className="text-bordo mt-2 text-[13px]">
-                  En az bir gün seç.
-                </p>
-              ) : null}
-            </>
-          )}
+        <div className="mt-2 flex gap-1.5">
+          <button
+            type="button"
+            onClick={() => setHerGun(true)}
+            aria-pressed={herGun}
+            className={`flex-1 rounded-full border px-3.5 py-2 text-[13.5px] font-medium transition-colors ${
+              herGun
+                ? "border-bordo bg-bordo-soft text-bordo"
+                : "border-bordo-soft bg-surface text-muted hover:border-bordo"
+            }`}
+          >
+            Her gün
+          </button>
+          <button
+            type="button"
+            onClick={() => setHerGun(false)}
+            aria-pressed={!herGun}
+            className={`flex-1 rounded-full border px-3.5 py-2 text-[13.5px] font-medium transition-colors ${
+              !herGun
+                ? "border-bordo bg-bordo-soft text-bordo"
+                : "border-bordo-soft bg-surface text-muted hover:border-bordo"
+            }`}
+          >
+            Gün seç
+          </button>
         </div>
 
-        <button
-          type="submit"
-          disabled={!gonderilebilir}
-          className="bg-bordo hover:bg-bordo-dark w-full rounded-xl px-4 py-3.5 text-[15px] font-semibold text-white transition-colors disabled:opacity-50"
-        >
-          Kaydet
-        </button>
-      </form>
+        {herGun ? null : (
+          <>
+            <div className="mt-2.5 grid grid-cols-7 gap-1.5">
+              {GUNLER.map((gun) => {
+                const secili = secilenGunler.includes(gun.iso);
+
+                return (
+                  <button
+                    key={gun.iso}
+                    type="button"
+                    onClick={() => gunuDegistir(gun.iso)}
+                    aria-pressed={secili}
+                    aria-label={gun.tam}
+                    className={`rounded-xl border py-2.5 text-[12.5px] font-semibold transition-colors ${
+                      secili
+                        ? "border-bordo bg-bordo-soft text-bordo"
+                        : "border-bordo-soft bg-surface text-muted hover:border-bordo"
+                    }`}
+                  >
+                    {gun.kisa}
+                  </button>
+                );
+              })}
+            </div>
+
+            {secilenGunler.length === 0 ? (
+              <p className="text-bordo mt-2 text-[13px]">En az bir gün seç.</p>
+            ) : null}
+          </>
+        )}
+
+        {duzenlenen ? (
+          <p className="text-muted mt-2 text-[12.5px] leading-snug">
+            Günleri değiştirirsen ilerleme sayacı yeni plana göre yeniden
+            hesaplanır.
+          </p>
+        ) : null}
+      </div>
+
+      <button
+        type="submit"
+        disabled={!gonderilebilir}
+        className="bg-bordo hover:bg-bordo-dark w-full rounded-xl px-4 py-3.5 text-[15px] font-semibold text-white transition-colors disabled:opacity-50"
+      >
+        {duzenlenen ? "Değişiklikleri kaydet" : "Kaydet"}
+      </button>
+    </form>
+  );
+}
+
+export default function AddGoalSheet({
+  acik,
+  bugun,
+  duzenlenen,
+  onKapat,
+  onKaydet,
+}: {
+  acik: boolean;
+  bugun: string;
+  /** Null ise yeni hedef, doluysa düzenleme. */
+  duzenlenen: DuzenlenenHedef | null;
+  onKapat: () => void;
+  onKaydet: (alanlar: HedefAlanlari, yeniSure: YeniHedef | null) => void;
+}) {
+  return (
+    <BottomSheet
+      acik={acik}
+      baslik={duzenlenen ? "Hedefi düzenle" : "Hedef ekle"}
+      onKapat={onKapat}
+    >
+      <HedefFormu
+        bugun={bugun}
+        duzenlenen={duzenlenen}
+        onKaydet={onKaydet}
+        onKapat={onKapat}
+      />
     </BottomSheet>
   );
 }

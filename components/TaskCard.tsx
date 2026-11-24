@@ -23,14 +23,14 @@ export default function TaskCard({
   yapildi,
   bekliyor,
   onTikla,
-  onSil,
+  onSecenekler,
 }: {
   baslik: string;
   simge: string;
   yapildi: boolean;
   bekliyor?: boolean;
   onTikla: () => void;
-  onSil: () => void;
+  onSecenekler: () => void;
 }) {
   const nefes = useAnimationControls();
 
@@ -91,11 +91,11 @@ export default function TaskCard({
 
           <button
             type="button"
-            onClick={onSil}
+            onClick={onSecenekler}
             aria-label={`${baslik} — seçenekler`}
-            className="text-muted hover:bg-bordo-soft hover:text-ink flex h-9 w-7 shrink-0 items-center justify-center rounded-lg text-[19px] leading-none transition-colors"
+            className="text-muted hover:bg-bordo-soft hover:text-ink flex h-9 w-7 shrink-0 items-center justify-center rounded-lg transition-colors"
           >
-            ⋯
+            <Simge ad="ucNokta" className="h-5 w-5" />
           </button>
 
           <CheckButton

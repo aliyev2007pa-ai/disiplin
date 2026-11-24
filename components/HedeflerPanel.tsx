@@ -3,16 +3,21 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
 
+import { gunEkle, kisaTarih } from "@/lib/dates";
 import { tikSesi, titret } from "@/lib/feedback";
 import { planliMi } from "@/lib/stats";
 import { createClient } from "@/lib/supabase/client";
 import { tikHatasiniCevir } from "@/lib/supabase/hatalar";
 
-import AddGoalSheet, { type YeniHedef } from "./AddGoalSheet";
+import AddGoalSheet, {
+  type HedefAlanlari,
+  type YeniHedef,
+} from "./AddGoalSheet";
 import ConfirmSheet from "./ConfirmSheet";
 import EmptyState from "./EmptyState";
 import GoalCard, { type Hedef } from "./GoalCard";
 import ProgressRing from "./ProgressRing";
+import SecenekSheet from "./SecenekSheet";
 import Simge from "./Simge";
 
 /** Bir hedefin bugünkü tikini ekler ya da kaldırır. */
@@ -37,7 +42,12 @@ export default function HedeflerPanel({
 }) {
   const [hedefler, setHedefler] = useState(baslangicHedefleri);
   const [bekleyen, setBekleyen] = useState<string[]>([]);
-  const [ekleAcik, setEkleAcik] = useState(false);
+  // Form kapanırken `duzenlenen` korunur ki panel aşağı kayarken içindeki
+  // yazılar göz önünde "Hedef ekle"ye dönüşmesin.
+  const [form, setForm] = useState<{ acik: boolean; duzenlenen: Hedef | null }>(
+    { acik: false, duzenlenen: null },
+  );
+  const [secenekler, setSecenekler] = useState<Hedef | null>(null);
   const [silinecek, setSilinecek] = useState<Hedef | null>(null);
   const [uyari, setUyari] = useState<string | null>(null);
 
@@ -157,6 +167,39 @@ export default function HedeflerPanel({
     );
   }
 
+  async function guncelle(id: string, alanlar: HedefAlanlari) {
+    const yedek = hedefler;
+    setHedefler((o) =>
+      o.map((h) =>
+        h.id === id
+          ? {
+              ...h,
+              baslik: alanlar.baslik,
+              simge: alanlar.simge,
+              dakika: alanlar.dakika,
+              gunler: alanlar.gunler,
+            }
+          : h,
+      ),
+    );
+
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("tasks")
+      .update({
+        title: alanlar.baslik,
+        emoji: alanlar.simge,
+        minutes: alanlar.dakika,
+        weekdays: alanlar.gunler,
+      })
+      .eq("id", id);
+
+    if (error) {
+      setHedefler(yedek);
+      uyarGecici("Hedef güncellenemedi. Tekrar dene.");
+    }
+  }
+
   async function sil(hedef: Hedef) {
     const yedek = hedefler;
     setHedefler((o) => o.filter((h) => h.id !== hedef.id));
@@ -219,7 +262,7 @@ export default function HedeflerPanel({
                       bugun={bugun}
                       bekliyor={bekleyen.includes(hedef.id)}
                       onTikla={() => void tikla(hedef.id)}
-                      onSil={() => setSilinecek(hedef)}
+                      onSecenekler={() => setSecenekler(hedef)}
                     />
                   ))}
                 </AnimatePresence>
@@ -241,7 +284,7 @@ export default function HedeflerPanel({
                       hedef={hedef}
                       bugun={bugun}
                       onTikla={() => undefined}
-                      onSil={() => setSilinecek(hedef)}
+                      onSecenekler={() => setSecenekler(hedef)}
                     />
                   ))}
                 </AnimatePresence>
@@ -253,17 +296,50 @@ export default function HedeflerPanel({
 
       <button
         type="button"
-        onClick={() => setEkleAcik(true)}
+        onClick={() => setForm({ acik: true, duzenlenen: null })}
         className="bg-bordo hover:bg-bordo-dark mt-5 w-full rounded-xl px-4 py-3.5 text-[15px] font-semibold text-white transition-colors"
       >
         + Hedef ekle
       </button>
 
       <AddGoalSheet
-        acik={ekleAcik}
+        acik={form.acik}
         bugun={bugun}
-        onKapat={() => setEkleAcik(false)}
-        onEkle={(yeni) => void ekle(yeni)}
+        duzenlenen={
+          form.duzenlenen
+            ? {
+                baslik: form.duzenlenen.baslik,
+                simge: form.duzenlenen.simge,
+                dakika: form.duzenlenen.dakika,
+                gunler: form.duzenlenen.gunler,
+                sureBilgisi: `${form.duzenlenen.sureEtiketi} · ${kisaTarih(
+                  form.duzenlenen.baslangic,
+                )} – ${kisaTarih(gunEkle(form.duzenlenen.bitisHaric, -1))}`,
+              }
+            : null
+        }
+        onKapat={() => setForm((o) => ({ ...o, acik: false }))}
+        onKaydet={(alanlar, yeniSure) => {
+          const hedef = form.duzenlenen;
+          if (hedef) void guncelle(hedef.id, alanlar);
+          else if (yeniSure) void ekle(yeniSure);
+        }}
+      />
+
+      <SecenekSheet
+        acik={secenekler !== null}
+        baslik={secenekler ? secenekler.baslik : ""}
+        onDuzenle={() => {
+          const hedef = secenekler;
+          setSecenekler(null);
+          if (hedef) setForm({ acik: true, duzenlenen: hedef });
+        }}
+        onSil={() => {
+          const hedef = secenekler;
+          setSecenekler(null);
+          if (hedef) setSilinecek(hedef);
+        }}
+        onKapat={() => setSecenekler(null)}
       />
 
       <ConfirmSheet

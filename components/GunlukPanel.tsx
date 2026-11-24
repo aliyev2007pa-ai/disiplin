@@ -8,10 +8,11 @@ import { tikSesi, titret } from "@/lib/feedback";
 import { createClient } from "@/lib/supabase/client";
 import { tikHatasiniCevir } from "@/lib/supabase/hatalar";
 
-import AddDailySheet from "./AddDailySheet";
+import AddDailySheet, { type GorevTaslagi } from "./AddDailySheet";
 import ConfirmSheet from "./ConfirmSheet";
 import EmptyState from "./EmptyState";
 import ProgressRing from "./ProgressRing";
+import SecenekSheet from "./SecenekSheet";
 import Simge from "./Simge";
 import TaskCard from "./TaskCard";
 
@@ -33,7 +34,12 @@ export default function GunlukPanel({
 }) {
   const [gorevler, setGorevler] = useState(baslangicGorevleri);
   const [bekleyen, setBekleyen] = useState<string[]>([]);
-  const [ekleAcik, setEkleAcik] = useState(false);
+  // Form kapanırken `duzenlenen` korunur: panel aşağı kayarken içindeki
+  // yazılar "Görev ekle"ye dönüp göz önünde değişmesin diye.
+  const [form, setForm] = useState<{ acik: boolean; duzenlenen: Gorev | null }>(
+    { acik: false, duzenlenen: null },
+  );
+  const [secenekler, setSecenekler] = useState<Gorev | null>(null);
   const [silinecek, setSilinecek] = useState<Gorev | null>(null);
   const [uyari, setUyari] = useState<string | null>(null);
 
@@ -103,7 +109,7 @@ export default function GunlukPanel({
     );
   }
 
-  async function ekle(baslik: string, simge: string) {
+  async function ekle({ baslik, simge }: GorevTaslagi) {
     const geciciId = `gecici-${crypto.randomUUID()}`;
     setGorevler((o) => [...o, { id: geciciId, baslik, simge, yapildi: false }]);
 
@@ -131,6 +137,24 @@ export default function GunlukPanel({
     setGorevler((o) =>
       o.map((g) => (g.id === geciciId ? { ...g, id: data.id } : g)),
     );
+  }
+
+  async function guncelle(id: string, { baslik, simge }: GorevTaslagi) {
+    const yedek = gorevler;
+    setGorevler((o) =>
+      o.map((g) => (g.id === id ? { ...g, baslik, simge } : g)),
+    );
+
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("tasks")
+      .update({ title: baslik, emoji: simge })
+      .eq("id", id);
+
+    if (error) {
+      setGorevler(yedek);
+      uyarGecici("Görev güncellenemedi. Tekrar dene.");
+    }
   }
 
   async function sil(gorev: Gorev) {
@@ -187,7 +211,7 @@ export default function GunlukPanel({
                 yapildi={gorev.yapildi}
                 bekliyor={bekleyen.includes(gorev.id)}
                 onTikla={() => void tikla(gorev.id)}
-                onSil={() => setSilinecek(gorev)}
+                onSecenekler={() => setSecenekler(gorev)}
               />
             ))}
           </AnimatePresence>
@@ -196,16 +220,37 @@ export default function GunlukPanel({
 
       <button
         type="button"
-        onClick={() => setEkleAcik(true)}
+        onClick={() => setForm({ acik: true, duzenlenen: null })}
         className="bg-bordo hover:bg-bordo-dark mt-5 w-full rounded-xl px-4 py-3.5 text-[15px] font-semibold text-white transition-colors"
       >
         + Görev ekle
       </button>
 
       <AddDailySheet
-        acik={ekleAcik}
-        onKapat={() => setEkleAcik(false)}
-        onEkle={(baslik, simge) => void ekle(baslik, simge)}
+        acik={form.acik}
+        duzenlenen={form.duzenlenen}
+        onKapat={() => setForm((o) => ({ ...o, acik: false }))}
+        onKaydet={(taslak) => {
+          const hedef = form.duzenlenen;
+          if (hedef) void guncelle(hedef.id, taslak);
+          else void ekle(taslak);
+        }}
+      />
+
+      <SecenekSheet
+        acik={secenekler !== null}
+        baslik={secenekler ? secenekler.baslik : ""}
+        onDuzenle={() => {
+          const gorev = secenekler;
+          setSecenekler(null);
+          if (gorev) setForm({ acik: true, duzenlenen: gorev });
+        }}
+        onSil={() => {
+          const gorev = secenekler;
+          setSecenekler(null);
+          if (gorev) setSilinecek(gorev);
+        }}
+        onKapat={() => setSecenekler(null)}
       />
 
       <ConfirmSheet
